@@ -1,15 +1,26 @@
 {
-  "name": "backend",
-  "version": "1.0.0",
-  "description": "",
-  "license": "ISC",
-  "author": "Nguyen Quoc Phong",
-  "type": "commonjs",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "dependencies": {
-    "express": "^5.1.0"
-  }
+	"name": "backend",
+	"version": "1.0.0",
+	"description": "",
+	"license": "ISC",
+	"author": "Nguyen Quoc Phong",
+	"type": "commonjs",
+	"main": "index.js",
+	"scripts": {
+		"start": "node --watch server.js",
+		"start:prod": "cross-env ENV=production node --watch server.js",
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"dependencies": {
+		"bcryptjs": "^3.0.2",
+		"cookie-parser": "^1.4.7",
+		"cross-env": "^7.0.3",
+		"dotenv": "^16.5.0",
+		"express": "^5.1.0",
+		"jsonwebtoken": "^9.0.2",
+		"mongoose": "^8.14.2",
+		"morgan": "^1.10.0",
+		"redis": "^5.0.1",
+		"validator": "^13.15.0"
+	}
 }
