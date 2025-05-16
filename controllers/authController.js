@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { promisify } = require('util');
+const crypto = require('node:crypto');
 
 const User = require('../models/userModel');
 const catchAsync = require('../utils/catchAsync');
@@ -11,6 +12,7 @@ const {
 	setRefreshToken,
 	setRefreshTokenToBlacklist,
 } = require('../utils/jwtManager');
+const Email = require('../utils/mail');
 
 const createSendToken = async (user, statusCode, res, next) => {
 	const accessToken = signAccessToken(user.id);
@@ -148,6 +150,10 @@ exports.refreshToken = catchAsync(async (req, res, next) => {
 exports.signup = catchAsync(async (req, res, next) => {
 	const newUser = await User.create(req.body);
 
+	// Send welcome email
+	const url = `${req.protocol}://${req.get('host')}`; // Change this to your desired URL
+	await new Email(newUser, url).sendWelcome();
+
 	createSendToken(newUser, 201, res, next);
 });
 
@@ -227,12 +233,85 @@ exports.protect = catchAsync(async (req, res, next) => {
 	if (!currentUser) return next(new AppError('The user does not exist', 401));
 
 	// Checking if user changed password after token was issued
-	if (currentUser.changedPasswordAfter(decoded.iat))
+	if (currentUser.changedPasswordAfter(decoded.iat)) {
+		const refreshToken = req.cookies.refreshToken;
+
+		// set old refresh token to blacklist
+		const result = await setRefreshTokenToBlacklist(refreshToken, decoded.exp);
+		if (!result) {
+			return next(new AppError('Failed to set refresh token in redis', 500));
+		}
+
 		return next(
 			new AppError('Password has been changed. Please login again!', 401)
 		);
+	}
 
 	// grant access to protected route
 	req.user = currentUser;
 	next();
+});
+
+exports.forgotPassword = catchAsync(async (req, res, next) => {
+	// check if user exists
+	const user = await User.findOne({ email: req.body.email });
+	if (!user) {
+		return next(new AppError('There is no user with that email address', 404));
+	}
+
+	// generate reset token
+	const resetToken = user.generatePasswordResetToken();
+	await user.save({ validateBeforeSave: false });
+
+	// 3) Send it to user's email
+	// This is temporary, we will change the url to the frontend url later
+	const resetURL = `${req.protocol}://${req.get(
+		'host'
+	)}/api/v1/auth/reset-password/${resetToken}`;
+
+	try {
+		await new Email(user, resetURL).sendPasswordReset(user.passwordResetExpires);
+
+		res.status(200).json({
+			status: 'success',
+			message: 'Reset password URL sent to your email!',
+		});
+	} catch (err) {
+		user.passwordResetToken = undefined;
+		user.passwordResetExpires = undefined;
+		await user.save({ validateBeforeSave: false });
+
+		return next(
+			new AppError('There was an error sending the email. Try again later!', 500)
+		);
+	}
+});
+
+exports.resetPassword = catchAsync(async (req, res) => {
+	// Get user based on token
+	const hashedToken = crypto
+		.createHash('sha256')
+		.update(req.params.token)
+		.digest('hex');
+
+	const user = await User.findOne({
+		passwordResetToken: hashedToken,
+		passwordResetExpires: { $gt: Date.now() },
+	});
+
+	if (!user) return next(new AppError('Token is invalid or expired', 400));
+
+	// Set new password
+	user.password = req.body.password;
+	user.passwordConfirm = req.body.passwordConfirm;
+	user.passwordResetToken = undefined;
+	user.passwordResetExpires = undefined;
+	await user.save();
+
+	// Update changing password timestamp for user
+	// Send message to user
+	res.status(200).json({
+		status: 'success',
+		message: 'Password reset successful!',
+	});
 });

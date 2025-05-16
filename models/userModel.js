@@ -2,6 +2,7 @@
 const mongoose = require('mongoose');
 const validator = require('validator');
 const bcrypt = require('bcryptjs');
+const crypto = require('node:crypto');
 
 const { Schema } = mongoose;
 
@@ -76,6 +77,13 @@ const userSchema = new Schema(
 			],
 		},
 		passwordChangedAt: Date,
+		passwordResetToken: String,
+		passwordResetExpires: Date,
+		active: {
+			type: Boolean,
+			default: true,
+			select: false,
+		},
 		lastLogin: Date,
 	},
 	{
@@ -114,6 +122,13 @@ userSchema.pre('save', async function (next) {
 	next();
 });
 
+userSchema.pre('save', function (next) {
+	if (!this.isModified('password') || this.$isNew) return next();
+
+	this.passwordChangedAt = Date.now();
+	next();
+});
+
 userSchema.method({
 	async correctPassword(candidatePassword, userPassword) {
 		return await bcrypt.compare(candidatePassword, userPassword);
@@ -126,6 +141,17 @@ userSchema.method({
 		}
 
 		return false;
+	},
+	generatePasswordResetToken() {
+		const resetToken = crypto.randomBytes(32).toString('hex');
+
+		this.passwordResetToken = crypto
+			.createHash('sha256')
+			.update(resetToken)
+			.digest('hex');
+
+		this.passwordResetExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+		return resetToken;
 	},
 });
 
