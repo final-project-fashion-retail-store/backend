@@ -59,22 +59,6 @@ const userSchema = new Schema(
 		phoneNumber: {
 			type: String,
 			default: '',
-			// validate: {
-			// 	validator: function (val) {
-			// 		return validator.isMobilePhone(val, 'vi-VN', { strictMode: false });
-			// 	},
-			// 	message: 'Please provide a valid phone number',
-			// },
-		},
-		addresses: {
-			default: [],
-			type: [
-				{
-					type: String,
-					isDefault: Boolean,
-					trim: true,
-				},
-			],
 		},
 		passwordChangedAt: Date,
 		passwordResetToken: String,
@@ -107,6 +91,20 @@ const userSchema = new Schema(
 
 userSchema.virtual('fullName').get(function () {
 	return `${this.firstName} ${this.lastName}`;
+});
+
+userSchema.virtual('userAddresses', {
+	ref: 'Address',
+	foreignField: 'user',
+	localField: '_id',
+});
+
+userSchema.pre(/^find/, function (next) {
+	// Only show active users
+	if (this.getOptions().showInactive !== true) {
+		this.find({ active: { $ne: false } });
+	}
+	next();
 });
 
 userSchema.pre('save', async function (next) {

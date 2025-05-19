@@ -165,8 +165,21 @@ exports.login = catchAsync(async (req, res, next) => {
 		return next(new AppError('Please provide email and password', 400));
 
 	// 2) Check existence of user and correct password
-	const user = await User.findOne({ email }).select('+password');
+	const user = await User.findOne({ email }).select('+password').populate({
+		path: 'userAddresses',
+		select: '-__v -createdAt -updatedAt',
+	});
+
 	const correct = await user?.correctPassword(password, user?.password);
+
+	if (!user) {
+		return next(
+			new AppError(
+				'Your account is not available or email does not exist. Please try again.',
+				401
+			)
+		);
+	}
 
 	if (!user || !correct)
 		return next(new AppError('Incorrect email or password', 401));
@@ -315,3 +328,45 @@ exports.resetPassword = catchAsync(async (req, res) => {
 		message: 'Password reset successful!',
 	});
 });
+
+exports.updatePassword = catchAsync(async (req, res, next) => {
+	const { refreshToken } = req.cookies;
+	// Get user from collection
+	const currentUser = await User.findById(req.user.id).select('+password');
+
+	// Check the correctness of current password
+	const correct = await currentUser.correctPassword(
+		req.body.oldPassword,
+		currentUser.password
+	);
+
+	if (!correct) return next(new AppError('Incorrect current password', 401));
+
+	// Update password
+	currentUser.password = req.body.newPassword;
+	currentUser.passwordConfirm = req.body.passwordConfirm;
+	await currentUser.save();
+
+	// set old refresh token to blacklist
+	const decoded = await promisify(jwt.verify)(
+		refreshToken,
+		process.env.JWT_REFRESH_SECRET
+	);
+	const result = await setRefreshTokenToBlacklist(refreshToken, decoded.exp);
+	if (!result) {
+		return next(new AppError('Failed to set refresh token in redis', 500));
+	}
+
+	// Update changing password timestamp
+	// Log user in, send JWT
+	createSendToken(currentUser, 200, res);
+});
+
+exports.restrictTo = (...roles) => {
+	return (req, res, next) => {
+		if (!roles.includes(req.user.role))
+			return next(new AppError('No permission to do the action!', 403));
+
+		next();
+	};
+};
