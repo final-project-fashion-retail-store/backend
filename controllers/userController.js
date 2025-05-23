@@ -12,16 +12,13 @@ const filteredBody = (bodyObj, ...disallowedFields) => {
 };
 
 exports.getCurrentUser = catchAsync(async (req, res, next) => {
-	const user = await User.findById(req.user.id)
-		.select('-passwordChangedAt -__v -createdAt -updatedAt')
-		.select('+password')
-		.populate({
-			path: 'userAddresses',
-			select: '-__v -createdAt -updatedAt',
-		});
+	const user = await User.findById(req.user.id).select(
+		'-passwordChangedAt -__v -createdAt -updatedAt'
+	);
 	if (!user) {
 		return next(new AppError('User not found', 404));
 	}
+
 	res.status(200).json({
 		status: 'success',
 		data: {

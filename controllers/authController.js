@@ -165,10 +165,7 @@ exports.login = catchAsync(async (req, res, next) => {
 		return next(new AppError('Please provide email and password', 400));
 
 	// 2) Check existence of user and correct password
-	const user = await User.findOne({ email }).select('+password').populate({
-		path: 'userAddresses',
-		select: '-__v -createdAt -updatedAt',
-	});
+	const user = await User.findOne({ email }).select('+password');
 
 	const correct = await user?.correctPassword(password, user?.password);
 
@@ -234,12 +231,15 @@ exports.protect = catchAsync(async (req, res, next) => {
 		token = req.headers.authorization.split(' ')[1];
 	} else if (req.cookies.accessToken) token = req.cookies.accessToken;
 	if (!token) return next(new AppError('Unauthorized access', 401));
-
 	// Verification of token
-	const decoded = await promisify(jwt.verify)(
-		token,
-		process.env.JWT_ACCESS_SECRET
-	);
+	let decoded;
+	try {
+		decoded = await promisify(jwt.verify)(token, process.env.JWT_ACCESS_SECRET);
+	} catch (err) {
+		console.log('JWT Error:', err.name, err.message);
+		// Pass JWT errors directly to the error handler
+		return next(err);
+	}
 
 	// Checking existence of user
 	const currentUser = await User.findById(decoded.id);
@@ -300,7 +300,7 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
 	}
 });
 
-exports.resetPassword = catchAsync(async (req, res) => {
+exports.resetPassword = catchAsync(async (req, res, next) => {
 	// Get user based on token
 	const hashedToken = crypto
 		.createHash('sha256')
@@ -330,10 +330,16 @@ exports.resetPassword = catchAsync(async (req, res) => {
 });
 
 exports.updatePassword = catchAsync(async (req, res, next) => {
-	const { refreshToken } = req.cookies;
 	// Get user from collection
 	const currentUser = await User.findById(req.user.id).select('+password');
 
+	// Check data
+	for (const key in req.body) {
+		const validFields = ['oldPassword', 'newPassword', 'passwordConfirm'];
+		if (!validFields.includes(key)) {
+			return next(new AppError('Invalid field in request body', 400));
+		}
+	}
 	// Check the correctness of current password
 	const correct = await currentUser.correctPassword(
 		req.body.oldPassword,
@@ -347,19 +353,10 @@ exports.updatePassword = catchAsync(async (req, res, next) => {
 	currentUser.passwordConfirm = req.body.passwordConfirm;
 	await currentUser.save();
 
-	// set old refresh token to blacklist
-	const decoded = await promisify(jwt.verify)(
-		refreshToken,
-		process.env.JWT_REFRESH_SECRET
-	);
-	const result = await setRefreshTokenToBlacklist(refreshToken, decoded.exp);
-	if (!result) {
-		return next(new AppError('Failed to set refresh token in redis', 500));
-	}
-
-	// Update changing password timestamp
-	// Log user in, send JWT
-	createSendToken(currentUser, 200, res);
+	res.status(200).json({
+		status: 'success',
+		message: 'Password updated successfully!',
+	});
 });
 
 exports.restrictTo = (...roles) => {

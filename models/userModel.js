@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const validator = require('validator');
 const bcrypt = require('bcryptjs');
 const crypto = require('node:crypto');
+const { maxHeaderSize } = require('node:http');
 
 const { Schema } = mongoose;
 
@@ -53,12 +54,21 @@ const userSchema = new Schema(
 			trim: true,
 		},
 		avatar: {
-			type: String,
-			default: 'default.jpg',
+			public_id: {
+				type: String,
+				default: '',
+			},
+			url: {
+				type: String,
+				default: '',
+			},
 		},
 		phoneNumber: {
 			type: String,
 			default: '',
+			maxLength: [10, 'Phone number must be 10 digits long'],
+			minLength: [10, 'Phone number must be 10 digits long'],
+			trim: true,
 		},
 		passwordChangedAt: Date,
 		passwordResetToken: String,
@@ -105,6 +115,13 @@ userSchema.pre(/^find/, function (next) {
 		this.find({ active: { $ne: false } });
 	}
 	next();
+});
+
+userSchema.pre(/^find/, function () {
+	this.populate({
+		path: 'userAddresses',
+		select: 'addressLine city label isDefault -user',
+	});
 });
 
 userSchema.pre('save', async function (next) {
