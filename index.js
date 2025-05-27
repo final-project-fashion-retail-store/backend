@@ -4,6 +4,7 @@ const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
 const cors = require('cors');
+const qs = require('qs');
 
 const globalErrorHandler = require('./controllers/errorController');
 const apiKeyAuth = require('./middlewares/apiKeyAuth');
@@ -40,6 +41,9 @@ app.use(
 app.options('/{*any}', cors());
 
 // Body parser, reading data from body into req.body
+app.set('query parser', (str) => {
+	return qs.parse(str);
+});
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(cookieParser());

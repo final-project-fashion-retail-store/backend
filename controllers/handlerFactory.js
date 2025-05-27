@@ -84,15 +84,15 @@ exports.getAll = (Model, collection) =>
 	catchAsync(async (req, res) => {
 		// To allow for nested GET reviews on tour (hack)
 		let filter = {};
-		if (req.params.tourId) filter.tour = req.params.tourId;
+		// if (req.params.id) filter.tour = req.params.tourId;
 
 		const features = new APIFeatures(
 			Model.find(filter).setOptions({ showInactive: true }),
 			req.query
-		);
-		features.filter();
-		features.sort();
-		features.limitFields();
+		)
+			.filter()
+			.sort()
+			.limitFields();
 		const paginateObj = await features.paginate();
 		const doc = await features.query;
 

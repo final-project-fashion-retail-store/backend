@@ -50,8 +50,27 @@ const addressSchema = new Schema(
 	},
 	{
 		timestamps: true,
+		timestamps: true,
+		toJSON: {
+			virtuals: true,
+			transform: function (doc, ret) {
+				delete ret.id;
+				return ret;
+			},
+		},
+		toObject: {
+			virtuals: true,
+			transform: function (doc, ret) {
+				delete ret.id;
+				return ret;
+			},
+		},
 	}
 );
+
+addressSchema.virtual('formattedAddress').get(function () {
+	return `${this.addressLine}, ${this.city}`;
+});
 
 addressSchema.pre(/^find/, function (next) {
 	// Only show active users

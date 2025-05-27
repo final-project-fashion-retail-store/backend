@@ -76,7 +76,6 @@ const userSchema = new Schema(
 		active: {
 			type: Boolean,
 			default: true,
-			select: false,
 		},
 		lastLogin: Date,
 	},
@@ -120,7 +119,7 @@ userSchema.pre(/^find/, function (next) {
 userSchema.pre(/^find/, function () {
 	this.populate({
 		path: 'userAddresses',
-		select: 'addressLine city label isDefault -user',
+		select: 'addressLine city label isDefault -user formattedAddress',
 	});
 });
 

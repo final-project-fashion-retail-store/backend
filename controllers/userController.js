@@ -3,6 +3,7 @@ const Address = require('../models/addressModel');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 const handlerFactory = require('./handlerFactory');
+const APIFeatures = require('../utils/apiFeatures');
 
 const filteredBody = (bodyObj, ...disallowedFields) => {
 	const newObj = { ...bodyObj };

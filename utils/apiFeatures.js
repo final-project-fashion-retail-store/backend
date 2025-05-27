@@ -1,5 +1,9 @@
 const AppError = require('../utils/appError');
 
+const regexSearch = (search) => {
+	return new RegExp(search, 'i');
+};
+
 class APIFeatures {
 	constructor(query, queryString) {
 		this.query = query;
@@ -8,14 +12,46 @@ class APIFeatures {
 
 	filter() {
 		const queryObj = { ...this.queryString };
-		const excludedFields = ['page', 'sort', 'limit', 'fields'];
+
+		// handle search queries
+		if (queryObj.userManageSearch) {
+			const regex = regexSearch(queryObj.userManageSearch);
+			this.query = this.query.find({
+				$or: [
+					{ firstName: regex },
+					{ lastName: regex },
+					{ email: regex },
+					{ phoneNumber: regex },
+				],
+			});
+		}
+
+		// 1/ remove fields that are not part of the query
+		const excludedFields = [
+			'page',
+			'sort',
+			'limit',
+			'fields',
+			'userManageSearch',
+		];
 		excludedFields.forEach((field) => delete queryObj[field]);
 
-		// 2/ advanced filtering
-		let queryStr = JSON.stringify(queryObj);
-		queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, (match) => `$${match}`);
+		// Remove empty values from queryObj
+		Object.keys(queryObj).forEach(
+			(key) => queryObj[key] === '' && delete queryObj[key]
+		);
 
-		this.query.find(JSON.parse(queryStr));
+		// 2/ advanced filtering
+		if (Object.keys(queryObj).length > 0) {
+			let queryStr = JSON.stringify(queryObj);
+			queryStr = queryStr.replace(
+				/\b(regex|gte|gt|lte|lt)\b/g,
+				(match) => `$${match}`
+			);
+
+			this.query = this.query.find(JSON.parse(queryStr));
+		}
+		return this;
 	}
 
 	sort() {
@@ -23,8 +59,9 @@ class APIFeatures {
 			const sortBy = this.queryString.sort.split(',').join(' ');
 			this.query = this.query.sort(sortBy);
 		} else {
-			this.query = this.query.sort('-createdAt _id');
+			this.query = this.query.sort('-updatedAt _id');
 		}
+		return this;
 	}
 
 	limitFields() {
@@ -34,9 +71,11 @@ class APIFeatures {
 		} else {
 			this.query = this.query.select('-__v');
 		}
+		return this;
 	}
 
 	async paginate() {
+		// const queryObj = { ...this.queryString };
 		const page = this.queryString.page * 1 || 1;
 		const limit = this.queryString.limit * 1 || 100;
 		const skip = (page - 1) * limit;
@@ -51,15 +90,32 @@ class APIFeatures {
 
 		const totalPages = Math.ceil(totalDocs / limit);
 
+		// Calculate accumulator: total items processed up to current page
+		const accumulator = Math.min(page * limit, totalDocs);
+
 		let nextPage = null;
 		let prevPage = null;
 
+		// Build query string preserving all original parameters except page
+		const buildQueryString = (pageNum) => {
+			const queryParams = { ...this.queryString };
+			queryParams.page = pageNum;
+			// queryParams.limit = limit;
+
+			const queryString = Object.keys(queryParams)
+				.filter((key) => queryParams[key] !== undefined && queryParams[key] !== '')
+				.map((key) => `${key}=${encodeURIComponent(queryParams[key])}`)
+				.join('&');
+
+			return `?${queryString}`;
+		};
+
 		if (page < totalPages) {
-			nextPage = `?page=${page + 1}&limit=${limit}`;
+			nextPage = buildQueryString(page + 1);
 		}
 
 		if (page > 1) {
-			prevPage = `?page=${page - 1}&limit=${limit}`;
+			prevPage = buildQueryString(page - 1);
 		}
 
 		this.query = this.query.skip(skip).limit(limit);
@@ -67,6 +123,7 @@ class APIFeatures {
 		return {
 			totalDocs,
 			totalPages,
+			accumulator,
 			currentPage: page,
 			nextPage,
 			prevPage,
