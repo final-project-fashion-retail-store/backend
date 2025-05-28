@@ -66,8 +66,6 @@ const userSchema = new Schema(
 		phoneNumber: {
 			type: String,
 			default: '',
-			maxLength: [10, 'Phone number must be 10 digits long'],
-			minLength: [10, 'Phone number must be 10 digits long'],
 			trim: true,
 		},
 		passwordChangedAt: Date,

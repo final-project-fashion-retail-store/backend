@@ -128,6 +128,7 @@ exports.deleteAddress = catchAsync(async (req, res, next) => {
 });
 
 // Management
+exports.createUser = handlerFactory.createOne(User);
 exports.getAllUsers = handlerFactory.getAll(User, 'users');
 exports.getUser = handlerFactory.getOne(User, 'addresses');
 exports.updateUser = handlerFactory.updateOne(User);

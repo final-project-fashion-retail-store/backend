@@ -43,16 +43,15 @@ exports.createOne = (Model, ...options) =>
 		const [checkParentId] = options;
 
 		if (checkParentId) {
-			if (
-				req.body.user !== req.user.id &&
-				!['admin', 'staff'].includes(req.user.role)
-			) {
-				return next(new AppError('You do not own this address', 403));
+			if (req.body.user !== req.user.id && !['admin'].includes(req.user.role)) {
+				return next(new AppError('No permission', 403));
 			}
 		}
 
 		const doc = await Model.create(req.body);
 
+		// Convert to object and remove unwanted fields
+		const { __v, createdAt, updatedAt, ...cleanDoc } = doc.toObject();
 		res.status(201).json({
 			status: 'success',
 			data: {
@@ -101,15 +100,15 @@ exports.getAll = (Model, collection) =>
 			results: doc.length,
 			data: {
 				data: doc,
-			},
-			pagination: {
-				...paginateObj,
-				nextPage: paginateObj.nextPage
-					? `${process.env.BASE_URL}/api/v1/${collection}${paginateObj.nextPage}`
-					: null,
-				prevPage: paginateObj.prevPage
-					? `${process.env.BASE_URL}/api/v1/${collection}${paginateObj.prevPage}`
-					: null,
+				pagination: {
+					...paginateObj,
+					nextPage: paginateObj.nextPage
+						? `${process.env.BASE_URL}/api/v1/${collection}${paginateObj.nextPage}`
+						: null,
+					prevPage: paginateObj.prevPage
+						? `${process.env.BASE_URL}/api/v1/${collection}${paginateObj.prevPage}`
+						: null,
+				},
 			},
 		});
 	});

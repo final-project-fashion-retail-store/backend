@@ -17,7 +17,8 @@ router.route('/addresses/:addressId').delete(userController.deleteAddress);
 // Management
 router
 	.route('/')
-	.get(authController.restrictTo('admin', 'staff'), userController.getAllUsers);
+	.get(authController.restrictTo('admin', 'staff'), userController.getAllUsers)
+	.post(authController.restrictTo('admin'), userController.createUser);
 
 router
 	.route('/:id')
