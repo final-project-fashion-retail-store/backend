@@ -32,6 +32,17 @@ const addressSchema = new Schema(
 		city: {
 			type: String,
 			required: [true, 'Address must have a city'],
+			trim: true,
+		},
+		district: {
+			type: String,
+			required: [true, 'Address must have a district'],
+			trim: true,
+		},
+		ward: {
+			type: String,
+			required: [true, 'Address must have a ward'],
+			trim: true,
 		},
 		isDefault: {
 			type: Boolean,
@@ -69,7 +80,7 @@ const addressSchema = new Schema(
 );
 
 addressSchema.virtual('formattedAddress').get(function () {
-	return `${this.addressLine}, ${this.city}`;
+	return `${this.addressLine}, ${this.ward}, ${this.district}, ${this.city}`;
 });
 
 addressSchema.pre(/^find/, function (next) {

@@ -40,7 +40,8 @@ exports.updateOne = (Model) =>
 
 exports.createOne = (Model, ...options) =>
 	catchAsync(async (req, res, next) => {
-		const [checkParentId] = options;
+		const data = { ...req.body };
+		const [checkParentId, modelType] = options;
 
 		if (checkParentId) {
 			if (req.body.user !== req.user.id && !['admin'].includes(req.user.role)) {
@@ -48,14 +49,20 @@ exports.createOne = (Model, ...options) =>
 			}
 		}
 
-		const doc = await Model.create(req.body);
+		// Check if user, add password and confirm password field
+		if (modelType === 'User') {
+			data.password = 'User1234';
+			data.passwordConfirm = 'User1234';
+		}
+
+		const doc = await Model.create(data);
 
 		// Convert to object and remove unwanted fields
 		const { __v, createdAt, updatedAt, ...cleanDoc } = doc.toObject();
 		res.status(201).json({
 			status: 'success',
 			data: {
-				data: doc,
+				data: cleanDoc,
 			},
 		});
 	});
