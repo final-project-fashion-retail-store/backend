@@ -100,7 +100,7 @@ userSchema.virtual('fullName').get(function () {
 	return `${this.firstName} ${this.lastName}`;
 });
 
-userSchema.virtual('userAddresses', {
+userSchema.virtual('addresses', {
 	ref: 'Address',
 	foreignField: 'user',
 	localField: '_id',
@@ -116,8 +116,9 @@ userSchema.pre(/^find/, function (next) {
 
 userSchema.pre(/^find/, function () {
 	this.populate({
-		path: 'userAddresses',
-		select: 'addressLine city label isDefault -user formattedAddress',
+		path: 'addresses',
+		select: '-__v -active',
+		options: { sort: { isDefault: -1 } },
 	});
 });
 

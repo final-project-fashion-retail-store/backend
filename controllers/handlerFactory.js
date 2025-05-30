@@ -38,31 +38,14 @@ exports.updateOne = (Model) =>
 		});
 	});
 
-exports.createOne = (Model, ...options) =>
-	catchAsync(async (req, res, next) => {
-		const data = { ...req.body };
-		const [checkParentId, modelType] = options;
+exports.createOne = (Model) =>
+	catchAsync(async (req, res) => {
+		const doc = await Model.create(req.body);
 
-		if (checkParentId) {
-			if (req.body.user !== req.user.id && !['admin'].includes(req.user.role)) {
-				return next(new AppError('No permission', 403));
-			}
-		}
-
-		// Check if user, add password and confirm password field
-		if (modelType === 'User') {
-			data.password = 'User1234';
-			data.passwordConfirm = 'User1234';
-		}
-
-		const doc = await Model.create(data);
-
-		// Convert to object and remove unwanted fields
-		const { __v, createdAt, updatedAt, ...cleanDoc } = doc.toObject();
 		res.status(201).json({
 			status: 'success',
 			data: {
-				data: cleanDoc,
+				data: doc,
 			},
 		});
 	});

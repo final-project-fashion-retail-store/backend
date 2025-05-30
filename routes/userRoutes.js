@@ -8,17 +8,24 @@ router.use(authController.protect);
 router.route('/current-user').get(userController.getCurrentUser);
 router.route('/edit-profile').patch(userController.editProfile);
 router.route('/deactivate/:id').delete(userController.deactivateAccount);
-router.route('/add-address').post(userController.addAddress);
+
 router
 	.route('/set-default-address/:id')
 	.patch(userController.setDefaultAddress);
 router.route('/addresses').get(userController.getAllUserAddresses);
 router.route('/addresses/:addressId').delete(userController.deleteAddress);
+
 // Management
 router
 	.route('/')
-	.get(authController.restrictTo('admin', 'staff'), userController.getAllUsers)
+	.get(authController.restrictTo('admin'), userController.getAllUsers)
 	.post(authController.restrictTo('admin'), userController.createUser);
+router
+	.route('/add-address')
+	.post(authController.restrictTo('admin'), userController.addAddress);
+router
+	.route('/delete-addresses/:userId')
+	.delete(authController.restrictTo('admin'), userController.deleteAddresses);
 
 router
 	.route('/:id')

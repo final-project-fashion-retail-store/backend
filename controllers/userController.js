@@ -65,7 +65,23 @@ exports.deactivateAccount = catchAsync(async (req, res, next) => {
 });
 
 // Address
-exports.addAddress = handlerFactory.createOne(Address, true);
+// exports.addAddress = catchAsync(async (req, res, next) => {
+// 	if (req.body.user !== req.user.id && !['admin'].includes(req.user.role)) {
+// 		return next(new AppError('No permission', 403));
+// 	}
+
+// 	const doc = await Model.create(data);
+
+// 	// Convert to object and remove unwanted fields
+// 	const { __v, createdAt, updatedAt, password, ...cleanDoc } = doc.toObject();
+// 	res.status(201).json({
+// 		status: 'success',
+// 		data: {
+// 			data: cleanDoc,
+// 		},
+// 	});
+// });
+
 exports.setDefaultAddress = catchAsync(async (req, res, next) => {
 	const address = await Address.findById(req.params.id);
 	if (!address) {
@@ -128,8 +144,55 @@ exports.deleteAddress = catchAsync(async (req, res, next) => {
 });
 
 // Management
-exports.createUser = handlerFactory.createOne(User, false, 'User');
+// User management
 exports.getAllUsers = handlerFactory.getAll(User, 'users');
 exports.getUser = handlerFactory.getOne(User, 'addresses');
 exports.updateUser = handlerFactory.updateOne(User);
 exports.deleteUser = handlerFactory.deleteOne(User);
+
+exports.createUser = catchAsync(async (req, res, next) => {
+	const data = { ...req.body };
+
+	data.password = 'User1234';
+	data.passwordConfirm = 'User1234';
+
+	const users = await User.create(data);
+
+	// Convert to object and remove unwanted fields
+	const { __v, createdAt, updatedAt, password, ...cleanDoc } = users.toObject();
+	res.status(201).json({
+		status: 'success',
+		data: {
+			user: cleanDoc,
+		},
+	});
+});
+
+exports.addAddress = catchAsync(async (req, res) => {
+	// check if this is the first address of this user - purpose is to set default the first address
+	const data = { ...req.body };
+	const addresses = await Address.find({ user: req.body.user });
+	if (addresses.length === 0) {
+		data.isDefault = true;
+	}
+
+	const address = await Address.create(data);
+
+	res.status(201).json({
+		status: 'success',
+		data: {
+			address,
+		},
+	});
+});
+
+exports.deleteAddresses = catchAsync(async (req, res, next) => {
+	const { userId } = req.params;
+
+	await Address.deleteMany({ user: userId });
+
+	res.status(204).json({
+		status: 'success',
+		data: null,
+	});
+});
