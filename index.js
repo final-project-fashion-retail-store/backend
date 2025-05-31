@@ -12,6 +12,7 @@ const AppError = require('./utils/appError');
 const userRouter = require('./routes/userRoutes');
 const authRouter = require('./routes/authRoutes');
 const imageRouter = require('./routes/imageRoutes');
+const addressRouter = require('./routes/addressRoutes');
 
 // GLOBAL MIDDLEWARES
 // Development logging
@@ -53,6 +54,7 @@ app.use(apiKeyAuth);
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/images', imageRouter);
+app.use('/api/v1/addresses', addressRouter);
 
 app.all('/{*any}', (req, res, next) => {
 	next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));

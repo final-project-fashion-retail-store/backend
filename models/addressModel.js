@@ -56,7 +56,6 @@ const addressSchema = new Schema(
 		active: {
 			type: Boolean,
 			default: true,
-			select: false,
 		},
 	},
 	{
@@ -83,11 +82,10 @@ addressSchema.virtual('formattedAddress').get(function () {
 	return `${this.addressLine}, ${this.ward}, ${this.district}, ${this.city}`;
 });
 
-addressSchema.pre(/^find/, function (next) {
-	// Only show active users
-	this.find({ active: { $ne: false } });
-	next();
-});
+// addressSchema.pre(/^find/, function (next) {
+// 	this.find({ active: { $ne: false } });
+// 	next();
+// });
 
 // Ensure only one default address per user
 addressSchema.pre('save', async function (next) {
@@ -99,6 +97,30 @@ addressSchema.pre('save', async function (next) {
 	}
 	next();
 });
+
+// Ensure only one default address per user (for update operations)
+addressSchema.pre(
+	['findOneAndUpdate', 'findByIdAndUpdate'],
+	async function (next) {
+		const update = this.getUpdate();
+
+		// Check if isDefault is being set to true
+		if (update.isDefault === true || update.$set?.isDefault === true) {
+			// Get the document being updated to find the user
+			const docToUpdate = await this.model.findOne(this.getQuery());
+
+			if (docToUpdate) {
+				// Set all other addresses of this user to not default
+				await this.model.updateMany(
+					{ user: docToUpdate.user, _id: { $ne: docToUpdate._id } },
+					{ $set: { isDefault: false } }
+				);
+			}
+		}
+
+		next();
+	}
+);
 
 const Address = mongoose.model('Address', addressSchema);
 module.exports = Address;

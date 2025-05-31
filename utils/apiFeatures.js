@@ -26,6 +26,27 @@ class APIFeatures {
 			});
 		}
 
+		if (queryObj.addressManageSearch) {
+			const regex = regexSearch(queryObj.addressManageSearch);
+
+			let userQuery = {};
+			if (/^[0-9a-fA-F]{24}$/.test(queryObj.addressManageSearch)) {
+				userQuery = { user: queryObj.addressManageSearch };
+			}
+
+			this.query = this.query.find({
+				$or: [
+					{ city: regex },
+					{ district: regex },
+					{ ward: regex },
+					{ addressLine: regex },
+					{ name: regex },
+					{ phoneNumber: regex },
+					userQuery,
+				],
+			});
+		}
+
 		// 1/ remove fields that are not part of the query
 		const excludedFields = [
 			'page',
@@ -33,6 +54,7 @@ class APIFeatures {
 			'limit',
 			'fields',
 			'userManageSearch',
+			'addressManageSearch',
 		];
 		excludedFields.forEach((field) => delete queryObj[field]);
 
