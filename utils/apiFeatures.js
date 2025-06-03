@@ -28,23 +28,40 @@ class APIFeatures {
 
 		if (queryObj.addressManageSearch) {
 			const regex = regexSearch(queryObj.addressManageSearch);
+			const searchValue = queryObj.addressManageSearch;
 
 			let userQuery = {};
 			if (/^[0-9a-fA-F]{24}$/.test(queryObj.addressManageSearch)) {
 				userQuery = { user: queryObj.addressManageSearch };
 			}
 
-			this.query = this.query.find({
-				$or: [
-					{ city: regex },
-					{ district: regex },
-					{ ward: regex },
-					{ addressLine: regex },
-					{ name: regex },
-					{ phoneNumber: regex },
-					userQuery,
-				],
-			});
+			// this.query = this.query.find({
+			// 	$or: [
+			// 		{ city: regex },
+			// 		{ district: regex },
+			// 		{ ward: regex },
+			// 		{ addressLine: regex },
+			// 		{ name: regex },
+			// 		{ phoneNumber: regex },
+			// 		userQuery,
+			// 	],
+			// });
+
+			const $or = [
+				{ city: regex },
+				{ district: regex },
+				{ ward: regex },
+				{ addressLine: regex },
+				{ name: regex },
+				{ phoneNumber: regex },
+			];
+
+			// Only add user filter if it's a valid ObjectId
+			if (/^[0-9a-fA-F]{24}$/.test(searchValue)) {
+				$or.push({ user: searchValue });
+			}
+
+			this.query = this.query.find({ $or });
 		}
 
 		// 1/ remove fields that are not part of the query

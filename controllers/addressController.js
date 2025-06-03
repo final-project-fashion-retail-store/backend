@@ -1,3 +1,4 @@
+const User = require('../models/userModel');
 const Address = require('../models/addressModel');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
@@ -53,8 +54,42 @@ exports.getAddresses = handlerFactory.getAll(Address, 'addresses', {
 	},
 });
 exports.getAddress = handlerFactory.getOne(Address, 'user');
-exports.updateAddress = handlerFactory.updateOne(Address);
-// exports.deleteAddress = handlerFactory.deleteOne(Address);
+exports.updateAddress = catchAsync(async (req, res, next) => {
+	const data = { ...req.body };
+	// get user id from email request data
+	if (data.email) {
+		const user = await User.findOne({ email: data.email });
+		if (!user) {
+			return next(new AppError('User does not exist', 404));
+		}
+
+		//don't allow set the default address to not default
+		if (!data.isDefault) {
+			const address = await Address.findById(req.params.id);
+			console.log(address);
+			if (address.isDefault) {
+				return new AppError('Cannot set default address to not default', 400);
+			}
+		}
+
+		data.user = user.id;
+		delete data.email;
+	}
+
+	const address = await Address.findByIdAndUpdate(req.params.id, data, {
+		new: true,
+		runValidators: true,
+		showInactive: true,
+	});
+
+	res.status(200).json({
+		status: 'success',
+		data: {
+			address,
+		},
+	});
+});
+
 exports.deleteAddress = catchAsync(async (req, res, next) => {
 	const address = await Address.findById(req.params.id);
 	if (!address) {
@@ -82,13 +117,25 @@ exports.deleteAddress = catchAsync(async (req, res, next) => {
 		data: null,
 	});
 });
+
 exports.createAddress = catchAsync(async (req, res) => {
 	// check if this is the first address of this user - purpose is to set default the first address
 	const data = { ...req.body };
-	const addresses = await Address.find({ user: req.body.user });
+
+	// get user id by the email from request input
+	const user = await User.findOne({ email: data.email });
+	if (!user) {
+		return next(new AppError('User does not exist', 404));
+	}
+
+	const addresses = await Address.find({ user: user.id });
 	if (addresses.length === 0) {
 		data.isDefault = true;
 	}
+
+	// Remove exclude field and add suitable field
+	delete data.email;
+	data.user = user.id;
 
 	const address = await Address.create(data);
 

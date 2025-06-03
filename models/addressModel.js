@@ -105,7 +105,10 @@ addressSchema.pre(
 		const update = this.getUpdate();
 
 		// Check if isDefault is being set to true
-		if (update.isDefault === true || update.$set?.isDefault === true) {
+		if (
+			update &&
+			(update.isDefault === true || update.$set?.isDefault === true)
+		) {
 			// Get the document being updated to find the user
 			const docToUpdate = await this.model.findOne(this.getQuery());
 

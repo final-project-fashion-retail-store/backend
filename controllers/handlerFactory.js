@@ -29,7 +29,7 @@ exports.updateOne = (Model) =>
 			return next(
 				new AppError(`No matching document with the id {${req.params.id}}`, 404)
 			);
-
+		console.log(doc);
 		res.status(200).json({
 			status: 'success',
 			data: {
