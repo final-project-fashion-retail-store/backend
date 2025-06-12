@@ -35,18 +35,6 @@ class APIFeatures {
 				userQuery = { user: queryObj.addressManageSearch };
 			}
 
-			// this.query = this.query.find({
-			// 	$or: [
-			// 		{ city: regex },
-			// 		{ district: regex },
-			// 		{ ward: regex },
-			// 		{ addressLine: regex },
-			// 		{ name: regex },
-			// 		{ phoneNumber: regex },
-			// 		userQuery,
-			// 	],
-			// });
-
 			const $or = [
 				{ city: regex },
 				{ district: regex },

@@ -16,12 +16,13 @@ router
 	.post(authController.restrictTo('admin'), userController.createUser);
 
 router
+	.route('/stats')
+	.get(authController.restrictTo('admin'), userController.getUserStats);
+
+router
 	.route('/:id')
-	.get(authController.restrictTo('admin', 'staff'), userController.getUser)
-	.patch(authController.restrictTo('admin', 'staff'), userController.updateUser)
-	.delete(
-		authController.restrictTo('admin', 'staff'),
-		userController.deleteUser
-	);
+	.get(authController.restrictTo('admin'), userController.getUser)
+	.patch(authController.restrictTo('admin'), userController.updateUser)
+	.delete(authController.restrictTo('admin'), userController.deleteUser);
 
 module.exports = router;

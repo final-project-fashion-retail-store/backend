@@ -50,9 +50,21 @@ exports.createOne = (Model) =>
 		});
 	});
 
-exports.getOne = (Model, populateOptions) =>
+exports.getOne = (Model, populateOptions, ...options) =>
 	catchAsync(async (req, res, next) => {
-		let query = Model.findById(req.params.id);
+		const [findBySlug] = options;
+		let query;
+		if (findBySlug) {
+			// id is actually a slug or id
+			query = Model.findOne({ slug: req.params.id }).setOptions({
+				showInactive: true,
+			});
+		} else {
+			query = Model.findById(req.params.id).setOptions({
+				showInactive: true,
+			});
+		}
+
 		if (populateOptions) query = query.populate(populateOptions);
 		const doc = await query;
 

@@ -79,3 +79,43 @@ exports.createUser = catchAsync(async (req, res, next) => {
 		},
 	});
 });
+
+exports.getUserStats = catchAsync(async (req, res, next) => {
+	const { role } = req.query;
+
+	const aggregationPipeline = [];
+
+	// 1. Conditionally add a $match stage if a role is specified
+	if (role) {
+		aggregationPipeline.push({ $match: { role: role } });
+	}
+
+	// 2. Group the documents to calculate stats
+	aggregationPipeline.push({
+		$group: {
+			_id: null,
+			totalUsers: { $sum: 1 },
+			activeUsers: {
+				$sum: {
+					$cond: [{ $eq: ['$active', true] }, 1, 0],
+				},
+			},
+			inactiveUsers: {
+				$sum: {
+					$cond: [{ $eq: ['$active', false] }, 1, 0],
+				},
+			},
+		},
+	});
+
+	const statsResult = await User.aggregate(aggregationPipeline);
+
+	res.status(200).json({
+		status: 'success',
+		data: {
+			totalUsers: statsResult[0]?.totalUsers || 0,
+			activeUsers: statsResult[0]?.activeUsers || 0,
+			inactiveUsers: statsResult[0]?.inactiveUsers || 0,
+		},
+	});
+});

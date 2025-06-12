@@ -13,6 +13,10 @@ const userRouter = require('./routes/userRoutes');
 const authRouter = require('./routes/authRoutes');
 const imageRouter = require('./routes/imageRoutes');
 const addressRouter = require('./routes/addressRoutes');
+const categoryRouter = require('./routes/categoryRoutes');
+const subcategoryRouter = require('./routes/subcategoryRoutes');
+const brandRouter = require('./routes/brandRoutes');
+const productRouter = require('./routes/productRoutes');
 
 // GLOBAL MIDDLEWARES
 // Development logging
@@ -55,6 +59,10 @@ app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/images', imageRouter);
 app.use('/api/v1/addresses', addressRouter);
+app.use('/api/v1/categories', categoryRouter);
+app.use('/api/v1/subcategories', subcategoryRouter);
+app.use('/api/v1/brands', brandRouter);
+app.use('/api/v1/products', productRouter);
 
 app.all('/{*any}', (req, res, next) => {
 	next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));

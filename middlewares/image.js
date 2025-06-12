@@ -12,7 +12,7 @@ const uploadImages = catchAsync(async (req, res, next) => {
 	}
 
 	const uploadedImageDetails = [];
-	console.log(req.files);
+
 	// Use Promise.all to concurrently upload all files to Cloudinary
 	await Promise.all(
 		req.files.map(async (file) => {

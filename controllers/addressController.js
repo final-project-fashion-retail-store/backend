@@ -68,7 +68,7 @@ exports.updateAddress = catchAsync(async (req, res, next) => {
 			const address = await Address.findById(req.params.id);
 			console.log(address);
 			if (address.isDefault) {
-				return new AppError('Cannot set default address to not default', 400);
+				return next(new AppError('Cannot set default address to not default', 400));
 			}
 		}
 

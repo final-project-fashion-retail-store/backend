@@ -60,7 +60,6 @@ const addressSchema = new Schema(
 	},
 	{
 		timestamps: true,
-		timestamps: true,
 		toJSON: {
 			virtuals: true,
 			transform: function (doc, ret) {
