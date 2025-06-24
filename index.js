@@ -1,5 +1,6 @@
 const express = require('express');
-const app = express();
+const { app } = require('./utils/socket');
+// const app = express();
 const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
@@ -17,6 +18,7 @@ const categoryRouter = require('./routes/categoryRoutes');
 const subcategoryRouter = require('./routes/subcategoryRoutes');
 const brandRouter = require('./routes/brandRoutes');
 const productRouter = require('./routes/productRoutes');
+const messageRouter = require('./routes/messageRoutes');
 
 // GLOBAL MIDDLEWARES
 // Development logging
@@ -29,20 +31,11 @@ app.use(helmet());
 // Enable CORS
 app.use(
 	cors({
-		origin: 'http://localhost:5173',
+		origin: ['http://localhost:5173', 'http://localhost:3000'],
 		credentials: true,
-		methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-		allowedHeaders: [
-			'Content-Type',
-			'Authorization',
-			'withCredentials',
-			'Access-Control-Allow-Credentials',
-			'x-api-key',
-			'skipAuthRefresh',
-			'_retry',
-		],
 	})
 );
+
 app.options('/{*any}', cors());
 
 // Body parser, reading data from body into req.body
@@ -63,11 +56,11 @@ app.use('/api/v1/categories', categoryRouter);
 app.use('/api/v1/subcategories', subcategoryRouter);
 app.use('/api/v1/brands', brandRouter);
 app.use('/api/v1/products', productRouter);
+app.use('/api/v1/messages', messageRouter);
 
 app.all('/{*any}', (req, res, next) => {
 	next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
 });
 
 app.use(globalErrorHandler);
-
-module.exports = app;
+// module.exports = app;

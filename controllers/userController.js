@@ -56,6 +56,21 @@ exports.deactivateAccount = catchAsync(async (req, res, next) => {
 	});
 });
 
+// For chatting
+exports.getStaffId = catchAsync(async (req, res, next) => {
+	const staff = await User.findOne({ role: 'staff' }).select('_id');
+	if (!staff) {
+		return next(new AppError('Staff not found', 404));
+	}
+
+	res.status(200).json({
+		status: 'success',
+		data: {
+			staffId: staff._id,
+		},
+	});
+});
+
 // Management
 exports.getAllUsers = handlerFactory.getAll(User, 'users');
 exports.getUser = handlerFactory.getOne(User, 'addresses');

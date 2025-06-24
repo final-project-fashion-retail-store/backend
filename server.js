@@ -1,7 +1,9 @@
 const mongoose = require('mongoose');
 require('dotenv').config();
 
-const app = require('./index');
+const { server } = require('./utils/socket');
+require('./index');
+// const app = require('./index');
 const client = require('./utils/redis');
 
 // uncaught exception error
@@ -22,12 +24,16 @@ const connectRedis = async () => {
 connectRedis();
 
 // db connection string
+// const db = process.env.DATABASE.replace(
+// 	'<db_password>',
+// 	process.env.DB_PASSWORD
+// );
+
+// connect to db
 const db = process.env.DATABASE.replace(
 	'<db_password>',
 	process.env.DB_PASSWORD
 );
-
-// connect to db
 const connect = async () => {
 	try {
 		await mongoose.connect(db);
@@ -39,7 +45,7 @@ const connect = async () => {
 connect();
 
 const port = process.env.PORT;
-const server = app.listen(port, () => {
+const result = server.listen(port, () => {
 	console.log(`App listening on port ${port}`);
 });
 
@@ -47,7 +53,7 @@ const server = app.listen(port, () => {
 process.on('unhandledRejection', (err) => {
 	console.log(err.name, err.message);
 	console.log('Unhandled Rejection! Shutting down...');
-	server.close(() => {
+	result.close(() => {
 		process.exit(1);
 	});
 });
@@ -55,7 +61,7 @@ process.on('unhandledRejection', (err) => {
 process.on('SIGTERM', () => {
 	console.log('SIGTERM received, shutting down gracefully');
 	// Perform cleanup operations
-	server.close(() => {
+	result.close(() => {
 		process.exit(0);
 	});
 });
