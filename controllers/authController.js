@@ -57,6 +57,163 @@ const createSendToken = async (user, statusCode, res, next) => {
 	});
 };
 
+// Google OAuth login
+exports.googleCallback = catchAsync(async (req, res, next) => {
+	const { code, error } = req.query;
+
+	// Handle OAuth errors
+	if (error) {
+		if (error === 'access_denied') {
+			return res.redirect(`${process.env.FRONTEND_URL}/?error=cancelled`);
+		} else {
+			return res.redirect(`${process.env.FRONTEND_URL}/?error=oauth_failed`);
+		}
+	}
+
+	// Handle missing authorization code
+	if (!code) {
+		console.error('No authorization code received');
+		return res.redirect(`${process.env.FRONTEND_URL}/?error=no_code`);
+	}
+
+	try {
+		// Exchange the authorization code for tokens
+		const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/x-www-form-urlencoded',
+			},
+			body: new URLSearchParams({
+				client_id: process.env.GOOGLE_CLIENT_ID,
+				client_secret: process.env.GOOGLE_CLIENT_SECRET,
+				code,
+				grant_type: 'authorization_code',
+				redirect_uri: `${process.env.BASE_URL}/api/v1/auth/google/callback`,
+			}),
+		});
+
+		if (!tokenResponse.ok) {
+			throw new Error('Failed to exchange code for tokens');
+		}
+
+		const tokens = await tokenResponse.json();
+
+		// Get user info from Google
+		const userResponse = await fetch(
+			'https://www.googleapis.com/oauth2/v2/userinfo',
+			{
+				headers: {
+					Authorization: `Bearer ${tokens.access_token}`,
+				},
+			}
+		);
+
+		if (!userResponse.ok) {
+			throw new Error('Failed to fetch user info');
+		}
+
+		const userData = await userResponse.json();
+		const {
+			id: googleId,
+			email,
+			given_name: firstName,
+			family_name: lastName,
+			picture: avatarUrl,
+			verified_email: emailVerified,
+		} = userData;
+		console.log('Google User Data:', userData);
+		// Check if user exists with this Google ID
+		let user = await User.findOne({ googleId });
+
+		if (!user) {
+			// Check if user exists with same email but different auth provider
+			const existingUser = await User.findOne({ email, authProvider: 'local' });
+
+			if (existingUser) {
+				// Link Google account to existing local account
+				// existingUser.googleId = googleId;
+				// existingUser.authProvider = 'google';
+				// existingUser.emailVerified = emailVerified || existingUser.emailVerified;
+
+				// Update avatar if not set
+				// if (!existingUser.avatar.url && avatarUrl) {
+				// 	existingUser.avatar.url = avatarUrl;
+				// }
+				return res.redirect(`${process.env.FRONTEND_URL}/?error=account_exists`);
+
+				// await existingUser.save({ validateBeforeSave: false });
+				// user = existingUser;
+			} else {
+				// Create new user
+				user = await User.create({
+					email,
+					firstName: firstName || 'User',
+					lastName: lastName || '',
+					googleId,
+					authProvider: 'google',
+					emailVerified: emailVerified || false,
+					avatar: {
+						url: avatarUrl || '',
+					},
+				});
+				// Send welcome email
+				const url = `${req.protocol}://${req.get('host')}`;
+				await new Email(user, url).sendWelcome();
+			}
+		}
+
+		// check if user is already had a refresh token in redis, set it to blacklist
+		const existingRefreshTokenKey = `whitelist:${user.id}`;
+		const existingRefreshToken = await client.get(existingRefreshTokenKey);
+
+		if (existingRefreshToken) {
+			// Blacklist the existing refresh token
+			try {
+				const decoded = jwt.decode(existingRefreshToken);
+				if (decoded && decoded.exp) {
+					await setRefreshTokenToBlacklist(existingRefreshToken, decoded.exp);
+				}
+			} catch (err) {
+				console.log('Error blacklisting existing token during OAuth:', err.message);
+			}
+		}
+
+		// Generate JWT tokens
+		const accessToken = signAccessToken(user.id);
+		const refreshToken = signRefreshToken(user.id);
+
+		const result = await setRefreshToken(user.id, refreshToken);
+		if (!result) {
+			throw new Error('Failed to set refresh token in redis');
+		}
+
+		// Set cookies and redirect to frontend with success
+		res.cookie('accessToken', accessToken, {
+			expires: new Date(
+				Date.now() + process.env.JWT_COOKIE_ACCESS_EXPIRES_IN * 24 * 60 * 60 * 1000
+			),
+			httpOnly: true,
+			secure: process.env.NODE_ENV === 'production',
+			sameSite: 'strict',
+		});
+
+		res.cookie('refreshToken', result, {
+			expires: new Date(
+				Date.now() + process.env.JWT_COOKIE_REFRESH_EXPIRES_IN * 24 * 60 * 60 * 1000
+			),
+			httpOnly: true,
+			secure: process.env.NODE_ENV === 'production',
+			sameSite: 'strict',
+		});
+
+		// Redirect back to frontend with success
+		res.redirect(`${process.env.FRONTEND_URL}/?login=success`);
+	} catch (error) {
+		console.error('OAuth callback error:', error);
+		res.redirect(`${process.env.FRONTEND_URL}/?login=failed`);
+	}
+});
+
 // New route handler for refreshing tokens
 exports.refreshToken = catchAsync(async (req, res, next) => {
 	// console.log(req.cookies);
@@ -151,7 +308,7 @@ exports.signup = catchAsync(async (req, res, next) => {
 	const newUser = await User.create(req.body);
 
 	// Send welcome email
-	const url = `${req.protocol}://${req.get('host')}`; // Change this to your desired URL
+	const url = `${req.protocol}://${req.get('host')}`;
 	await new Email(newUser, url).sendWelcome();
 
 	createSendToken(newUser, 201, res, next);
@@ -178,19 +335,31 @@ exports.login = catchAsync(async (req, res, next) => {
 		);
 	}
 
+	// Check if user is trying to login with password but account is OAuth only
+	if (user.authProvider === 'google' && !user.password) {
+		return next(
+			new AppError(
+				'This account was created with Google. Please use Google Sign-In.',
+				401
+			)
+		);
+	}
+
 	if (!user || !correct)
 		return next(new AppError('Incorrect email or password', 401));
 
 	if (refreshToken) {
-		// set old refresh token to blacklist
-		const decoded = await promisify(jwt.verify)(
-			refreshToken,
-			process.env.JWT_REFRESH_SECRET
-		);
-
-		const result = await setRefreshTokenToBlacklist(refreshToken, decoded.exp);
-		if (!result) {
-			return next(new AppError('Failed to set refresh token in redis', 500));
+		try {
+			const decoded = await promisify(jwt.verify)(
+				refreshToken,
+				process.env.JWT_REFRESH_SECRET
+			);
+			const result = await setRefreshTokenToBlacklist(refreshToken, decoded.exp);
+			if (!result) {
+				return next(new AppError('Failed to set refresh token in redis', 500));
+			}
+		} catch (err) {
+			next(err);
 		}
 	}
 
@@ -198,18 +367,22 @@ exports.login = catchAsync(async (req, res, next) => {
 	createSendToken(user, 200, res, next);
 });
 
-exports.logout = catchAsync(async (req, res) => {
+exports.logout = catchAsync(async (req, res, next) => {
 	// Get refresh token from cookie
 	const refreshToken = req.cookies.refreshToken;
 
-	// set old refresh token to blacklist
-	const decoded = await promisify(jwt.verify)(
-		refreshToken,
-		process.env.JWT_REFRESH_SECRET
-	);
-	const result = await setRefreshTokenToBlacklist(refreshToken, decoded.exp);
-	if (!result) {
-		return next(new AppError('Failed to set refresh token in redis', 500));
+	try {
+		// set old refresh token to blacklist
+		const decoded = await promisify(jwt.verify)(
+			refreshToken,
+			process.env.JWT_REFRESH_SECRET
+		);
+		const result = await setRefreshTokenToBlacklist(refreshToken, decoded.exp);
+		if (!result) {
+			return next(new AppError('Failed to set refresh token in redis', 500));
+		}
+	} catch (err) {
+		next(err);
 	}
 
 	res.clearCookie('accessToken');
@@ -246,13 +419,31 @@ exports.protect = catchAsync(async (req, res, next) => {
 	if (!currentUser) return next(new AppError('The user does not exist', 401));
 
 	// Checking if user changed password after token was issued
-	if (currentUser.changedPasswordAfter(decoded.iat)) {
+	if (
+		currentUser.authProvider === 'local' &&
+		currentUser.changedPasswordAfter(decoded.iat)
+	) {
 		const refreshToken = req.cookies.refreshToken;
 
-		// set old refresh token to blacklist
-		const result = await setRefreshTokenToBlacklist(refreshToken, decoded.exp);
-		if (!result) {
-			return next(new AppError('Failed to set refresh token in redis', 500));
+		if (refreshToken) {
+			try {
+				// set old refresh token to blacklist
+				const refreshDecoded = await promisify(jwt.verify)(
+					refreshToken,
+					process.env.JWT_REFRESH_SECRET
+				);
+				const result = await setRefreshTokenToBlacklist(
+					refreshToken,
+					refreshDecoded.exp
+				);
+				if (!result) {
+					return next(new AppError('Failed to set refresh token in redis', 500));
+				}
+				res.clearCookie('accessToken');
+				res.clearCookie('refreshToken');
+			} catch (err) {
+				console.log('Error blacklisting token after password change:', err.message);
+			}
 		}
 
 		return next(
@@ -272,15 +463,45 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
 		return next(new AppError('There is no user with that email address', 404));
 	}
 
+	// Check if user is Google OAuth user
+	if (user.authProvider === 'google' && !user.password) {
+		return next(
+			new AppError(
+				'This account was created with Google. Please use Google Sign-In to access your account.',
+				400
+			)
+		);
+	}
+
+	// Prevent spamming the reset password email
+	const RESEND_COOLDOWN = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+	if (user.passwordResetExpires && user.passwordResetExpires > Date.now()) {
+		// Calculate when the token was created (assuming 10 minutes expiry)
+		const TOKEN_EXPIRY_DURATION = 10 * 60 * 1000; // 10 minutes in milliseconds
+		const tokenCreatedAt = user.passwordResetExpires - TOKEN_EXPIRY_DURATION;
+
+		if (Date.now() - tokenCreatedAt < RESEND_COOLDOWN) {
+			const timeRemaining = Math.ceil(
+				(RESEND_COOLDOWN - (Date.now() - tokenCreatedAt)) / 1000 / 60
+			);
+			return next(
+				new AppError(
+					`Please wait ${timeRemaining} minutes before requesting another reset email.`,
+					429
+				)
+			);
+		}
+	}
+
 	// generate reset token
 	const resetToken = user.generatePasswordResetToken();
 	await user.save({ validateBeforeSave: false });
 
 	// 3) Send it to user's email
 	// This is temporary, we will change the url to the frontend url later
-	const resetURL = `${req.protocol}://${req.get(
-		'host'
-	)}/api/v1/auth/reset-password/${resetToken}`;
+	const frontendURL = req.get('origin') || req.get('referer');
+	const resetURL = `${frontendURL}/reset-password/${resetToken}`;
 
 	try {
 		await new Email(user, resetURL).sendPasswordReset(user.passwordResetExpires);
@@ -333,6 +554,16 @@ exports.updatePassword = catchAsync(async (req, res, next) => {
 	// Get user from collection
 	const currentUser = await User.findById(req.user.id).select('+password');
 
+	// Check if user is Google OAuth user
+	if (currentUser.authProvider === 'google' && !currentUser.password) {
+		return next(
+			new AppError(
+				'Cannot update password for Google OAuth account. Please use Google to manage your account.',
+				400
+			)
+		);
+	}
+
 	// Check data
 	for (const key in req.body) {
 		const validFields = ['oldPassword', 'newPassword', 'passwordConfirm'];
@@ -340,6 +571,7 @@ exports.updatePassword = catchAsync(async (req, res, next) => {
 			return next(new AppError('Invalid field in request body', 400));
 		}
 	}
+
 	// Check the correctness of current password
 	const correct = await currentUser.correctPassword(
 		req.body.oldPassword,

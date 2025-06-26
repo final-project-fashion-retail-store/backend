@@ -23,20 +23,34 @@ const userSchema = new Schema(
 		},
 		password: {
 			type: String,
-			required: [true, 'Please provide a password'],
+			required: function () {
+				// Password is only required for non-OAuth users
+				return !this.googleId;
+			},
 			minlength: 6,
 			select: false,
 		},
 		passwordConfirm: {
 			type: String,
-			required: [true, 'Please confirm your password'],
+			required: function () {
+				// Password confirm is only required when password is being set
+				return this.password && this.isModified('password');
+			},
 			validate: {
-				// This only works on CREATE and SAVE!!!
 				validator: function (val) {
 					return val === this.password;
 				},
 				message: 'Passwords are not the same!',
 			},
+		},
+		googleId: {
+			type: String,
+			sparse: true, // Allows multiple null values but unique non-null values
+		},
+		authProvider: {
+			type: String,
+			enum: ['local', 'google'],
+			default: 'local',
 		},
 		role: {
 			type: String,
@@ -96,6 +110,8 @@ const userSchema = new Schema(
 	}
 );
 
+userSchema.index({ email: 1, authProvider: 1 });
+
 userSchema.virtual('fullName').get(function () {
 	return `${this.firstName} ${this.lastName}`;
 });
@@ -125,6 +141,11 @@ userSchema.pre(/^find/, function () {
 userSchema.pre('save', async function (next) {
 	// only run this function if password was actually modified
 	if (!this.isModified('password')) return next();
+
+	// Skip password hashing for OAuth users
+	if (this.authProvider === 'google' && !this.password) {
+		return next();
+	}
 
 	// hash the password with cost of 12
 	const salt = await bcrypt.genSalt(12);
