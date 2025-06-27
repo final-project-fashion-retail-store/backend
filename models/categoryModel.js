@@ -40,11 +40,11 @@ const categorySchema = new Schema(
 
 categorySchema.index({ active: 1 });
 
-// categorySchema.virtual('subCategories', {
-// 	ref: 'Subcategory',
-// 	foreignField: 'parentCategory',
-// 	localField: '_id',
-// });
+categorySchema.virtual('subcategories', {
+	ref: 'Subcategory',
+	foreignField: 'parentCategory',
+	localField: '_id',
+});
 
 categorySchema.pre('save', function () {
 	this.slug = slugify(this.name, { lower: true });

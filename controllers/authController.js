@@ -12,6 +12,7 @@ const {
 	setRefreshToken,
 	setRefreshTokenToBlacklist,
 } = require('../utils/jwtManager');
+const { getTokens, getUserInfo } = require('../utils/googleAuthManager');
 const Email = require('../utils/mail');
 
 const createSendToken = async (user, statusCode, res, next) => {
@@ -58,7 +59,7 @@ const createSendToken = async (user, statusCode, res, next) => {
 };
 
 // Google OAuth login
-exports.googleCallback = catchAsync(async (req, res, next) => {
+exports.googleCallback = catchAsync(async (req, res) => {
 	const { code, error } = req.query;
 
 	// Handle OAuth errors
@@ -78,50 +79,19 @@ exports.googleCallback = catchAsync(async (req, res, next) => {
 
 	try {
 		// Exchange the authorization code for tokens
-		const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/x-www-form-urlencoded',
-			},
-			body: new URLSearchParams({
-				client_id: process.env.GOOGLE_CLIENT_ID,
-				client_secret: process.env.GOOGLE_CLIENT_SECRET,
-				code,
-				grant_type: 'authorization_code',
-				redirect_uri: `${process.env.BASE_URL}/api/v1/auth/google/callback`,
-			}),
-		});
-
-		if (!tokenResponse.ok) {
-			throw new Error('Failed to exchange code for tokens');
-		}
-
-		const tokens = await tokenResponse.json();
+		const tokens = await getTokens(code);
 
 		// Get user info from Google
-		const userResponse = await fetch(
-			'https://www.googleapis.com/oauth2/v2/userinfo',
-			{
-				headers: {
-					Authorization: `Bearer ${tokens.access_token}`,
-				},
-			}
-		);
-
-		if (!userResponse.ok) {
-			throw new Error('Failed to fetch user info');
-		}
-
-		const userData = await userResponse.json();
+		const userData = await getUserInfo(tokens.access_token);
 		const {
 			id: googleId,
 			email,
 			given_name: firstName,
 			family_name: lastName,
 			picture: avatarUrl,
-			verified_email: emailVerified,
+			// verified_email: emailVerified,
 		} = userData;
-		console.log('Google User Data:', userData);
+
 		// Check if user exists with this Google ID
 		let user = await User.findOne({ googleId });
 
@@ -130,19 +100,8 @@ exports.googleCallback = catchAsync(async (req, res, next) => {
 			const existingUser = await User.findOne({ email, authProvider: 'local' });
 
 			if (existingUser) {
-				// Link Google account to existing local account
-				// existingUser.googleId = googleId;
-				// existingUser.authProvider = 'google';
-				// existingUser.emailVerified = emailVerified || existingUser.emailVerified;
-
-				// Update avatar if not set
-				// if (!existingUser.avatar.url && avatarUrl) {
-				// 	existingUser.avatar.url = avatarUrl;
-				// }
+				// Suppose to combine local account with Google account here, but not implemented
 				return res.redirect(`${process.env.FRONTEND_URL}/?error=account_exists`);
-
-				// await existingUser.save({ validateBeforeSave: false });
-				// user = existingUser;
 			} else {
 				// Create new user
 				user = await User.create({

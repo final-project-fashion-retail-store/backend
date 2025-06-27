@@ -4,6 +4,15 @@ const handlerFactory = require('./handlerFactory');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 
+exports.getAllCategoriesWithSubcategories = handlerFactory.getAll(
+	Category,
+	'categories',
+	{
+		path: 'subcategories',
+		select: '-__v -active',
+	}
+);
+
 // Management
 exports.getCategory = handlerFactory.getOne(Category);
 exports.getAllCategories = handlerFactory.getAll(Category, 'categories');
