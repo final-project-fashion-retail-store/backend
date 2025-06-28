@@ -47,7 +47,6 @@ const createSendToken = async (user, statusCode, res, next) => {
 	const userObj = user.toObject();
 	delete userObj.password;
 	delete userObj.__v;
-	delete userObj.createdAt;
 	delete userObj.updatedAt;
 
 	res.status(statusCode).json({

@@ -4,10 +4,12 @@ const router = express.Router();
 const authController = require('../controllers/authController');
 const brandController = require('../controllers/brandController');
 
+router.route('/').get(brandController.getAllBrands);
+
 router.use(authController.protect);
 
 router
-	.route('/')
+	.route('/admin')
 	.get(authController.restrictTo('admin', 'staff'), brandController.getAllBrands)
 	.post(
 		authController.restrictTo('admin', 'staff'),

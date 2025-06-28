@@ -4,16 +4,13 @@ const router = express.Router();
 const authController = require('../controllers/authController');
 const categoryController = require('../controllers/categoryController');
 
-router.get(
-	'/with-subcategories',
-	categoryController.getAllCategoriesWithSubcategories
-);
+router.get('/', categoryController.getAllCategoriesWithSubcategories);
 
 router.use(authController.protect);
 
 // Management
 router
-	.route('/')
+	.route('/admin')
 	.get(categoryController.getAllCategories)
 	.post(
 		authController.restrictTo('admin', 'staff'),
