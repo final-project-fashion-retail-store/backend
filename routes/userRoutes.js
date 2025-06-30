@@ -7,7 +7,7 @@ const userController = require('../controllers/userController');
 router.use(authController.protect);
 router.route('/current-user').get(userController.getCurrentUser);
 router.route('/edit-profile').patch(userController.editProfile);
-router.route('/deactivate/:id').delete(userController.deactivateAccount);
+router.route('/deactivate-account').delete(userController.deactivateAccount);
 
 // Management
 router

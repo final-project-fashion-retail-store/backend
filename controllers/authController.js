@@ -287,11 +287,18 @@ exports.login = catchAsync(async (req, res, next) => {
 	if (!user) {
 		return next(
 			new AppError(
-				'Your account is not available or email does not exist. Please try again.',
+				'Your account is blocked or email does not exist. Please try again.',
 				401
 			)
 		);
 	}
+
+	// Check if user is blocked
+	// if (!user.active) {
+	// 	return next(
+	// 		new AppError('Your account is blocked. Please contact support.', 403)
+	// 	);
+	// }
 
 	// Check if user is trying to login with password but account is OAuth only
 	if (user.authProvider === 'google' && !user.password) {
@@ -374,7 +381,20 @@ exports.protect = catchAsync(async (req, res, next) => {
 
 	// Checking existence of user
 	const currentUser = await User.findById(decoded.id);
-	if (!currentUser) return next(new AppError('The user does not exist', 401));
+	if (!currentUser)
+		return next(
+			new AppError(
+				'Your account is blocked or email does not exist. Please try again.',
+				401
+			)
+		);
+
+	// Checking if account is blocked
+	// if (!currentUser.active) {
+	// 	return next(
+	// 		new AppError('Your account is blocked. Please contact support.', 403)
+	// 	);
+	// }
 
 	// Checking if user changed password after token was issued
 	if (
@@ -419,6 +439,13 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
 	const user = await User.findOne({ email: req.body.email });
 	if (!user) {
 		return next(new AppError('There is no user with that email address', 404));
+	}
+
+	// Check if user is blocked
+	if (!user.active) {
+		return next(
+			new AppError('Your account is blocked. Please contact support.', 403)
+		);
 	}
 
 	// Check if user is Google OAuth user
