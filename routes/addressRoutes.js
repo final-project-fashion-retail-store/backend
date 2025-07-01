@@ -6,9 +6,25 @@ const addressController = require('../controllers/addressController');
 
 router.use(authController.protect);
 
-// Management
 router
 	.route('/')
+	.get(authController.restrictTo('user'), addressController.getAllUserAddresses)
+	.post(authController.restrictTo('user'), addressController.createNewAddress);
+
+router
+	.route('/:id')
+	.patch(
+		authController.restrictTo('user'),
+		addressController.updateAddressCustomer
+	)
+	.delete(
+		authController.restrictTo('user'),
+		addressController.deactivateAddress
+	);
+
+// Management
+router
+	.route('/admin')
 	.get(
 		authController.restrictTo('admin', 'staff'),
 		addressController.getAddresses
@@ -19,7 +35,7 @@ router
 	);
 
 router
-	.route('/:id')
+	.route('/admin/:id')
 	.get(authController.restrictTo('admin', 'staff'), addressController.getAddress)
 	.patch(
 		authController.restrictTo('admin', 'staff'),

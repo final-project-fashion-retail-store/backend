@@ -81,10 +81,12 @@ addressSchema.virtual('formattedAddress').get(function () {
 	return `${this.addressLine}, ${this.ward}, ${this.district}, ${this.city}`;
 });
 
-// addressSchema.pre(/^find/, function (next) {
-// 	this.find({ active: { $ne: false } });
-// 	next();
-// });
+addressSchema.pre(/^find/, function (next) {
+	if (this.getOptions().showInactive !== true) {
+		this.find({ active: { $ne: false } });
+	}
+	next();
+});
 
 // Ensure only one default address per user
 addressSchema.pre('save', async function (next) {
