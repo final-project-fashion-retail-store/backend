@@ -6,6 +6,18 @@ const productController = require('../controllers/productController');
 
 router.route('/').get(productController.getAllProducts);
 
+router.get(
+	'/category/:categorySlug',
+	productController.getProductsByCategory,
+	productController.sendCategoryProducts
+);
+router
+	.route('/category/:categorySlug/subcategory/:subcategorySlug')
+	.get(
+		productController.getProductsBySubcategory,
+		productController.sendSubcategoryProducts
+	);
+
 router.use(authController.protect);
 
 router
