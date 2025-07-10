@@ -470,6 +470,472 @@ exports.sendSubcategoryProducts = (req, res) => {
 	});
 };
 
+exports.searchPopup = catchAsync(async (req, res, next) => {
+	const { q } = req.query;
+
+	// Return empty results if no query or query is too short
+	if (!q || q.trim().length < 1) {
+		req.searchResults = {
+			query: q?.trim() || '',
+			results: {
+				products: [],
+				subcategories: [],
+				brands: [],
+			},
+		};
+		return next();
+	}
+
+	const searchTerm = q.trim();
+	const searchRegex = new RegExp(searchTerm, 'i');
+
+	try {
+		// Search for top 5 products (minimal data for performance)
+		const productsPromise = Product.find({
+			active: true,
+			$or: [{ name: searchRegex }, { tags: { $in: [searchRegex] } }],
+		})
+			.populate('brand', 'name slug logos')
+			.select('name slug price salePrice images')
+			.sort({ featuredProduct: -1, createdAt: -1 })
+			.limit(5)
+			.lean(); // Use lean() for better performance
+
+		// Search for matching subcategories with parent category
+		const subcategoriesPromise = Subcategory.aggregate([
+			{
+				$match: {
+					active: true,
+					name: searchRegex,
+				},
+			},
+			{
+				$lookup: {
+					from: 'categories',
+					localField: 'parentCategory',
+					foreignField: '_id',
+					as: 'parentCategory',
+				},
+			},
+			{
+				$lookup: {
+					from: 'products',
+					let: { subcategoryId: '$_id' },
+					pipeline: [
+						{
+							$match: {
+								$expr: { $eq: ['$category', '$$subcategoryId'] },
+								active: true,
+							},
+						},
+						{ $count: 'total' },
+					],
+					as: 'productCount',
+				},
+			},
+			{
+				$project: {
+					_id: 1,
+					name: 1,
+					slug: 1,
+					parentCategory: {
+						_id: { $arrayElemAt: ['$parentCategory._id', 0] },
+						name: { $arrayElemAt: ['$parentCategory.name', 0] },
+						slug: { $arrayElemAt: ['$parentCategory.slug', 0] },
+					},
+					productCount: {
+						$ifNull: [{ $arrayElemAt: ['$productCount.total', 0] }, 0],
+					},
+				},
+			},
+			{
+				$sort: { productCount: -1 },
+			},
+		]);
+
+		// Search for matching brands
+		const brandsPromise = Brand.aggregate([
+			{
+				$match: {
+					active: true,
+					name: searchRegex,
+				},
+			},
+			{
+				$lookup: {
+					from: 'products',
+					let: { brandId: '$_id' },
+					pipeline: [
+						{
+							$match: {
+								$expr: { $eq: ['$brand', '$$brandId'] },
+								active: true,
+							},
+						},
+						{ $count: 'total' },
+					],
+					as: 'productCount',
+				},
+			},
+			{
+				$project: {
+					_id: 1,
+					name: 1,
+					slug: 1,
+					logo: 1,
+					productCount: {
+						$ifNull: [{ $arrayElemAt: ['$productCount.total', 0] }, 0],
+					},
+				},
+			},
+			{
+				$sort: { featuredBrand: -1, productCount: -1 },
+			},
+		]);
+
+		// Execute all queries in parallel for better performance
+		const [products, subcategories, brands] = await Promise.all([
+			productsPromise,
+			subcategoriesPromise,
+			brandsPromise,
+		]);
+
+		// Attach search results to request object
+		req.searchResults = {
+			query: searchTerm,
+			results: {
+				products,
+				subcategories,
+				brands,
+			},
+		};
+
+		next();
+	} catch (error) {
+		return next(new AppError('Search failed', 500));
+	}
+});
+
+// Controller function to send search popup results
+exports.sendSearchPopupResults = (req, res) => {
+	const { query, results, totalCounts } = req.searchResults;
+
+	res.status(200).json({
+		status: 'success',
+		data: {
+			query,
+			results,
+			totalCounts,
+		},
+	});
+};
+
+// Search page middleware with filtering, pagination, and sorting
+exports.getProductsBySearch = catchAsync(async (req, res, next) => {
+	const { q } = req.query;
+
+	if (!q || q.trim() === '') {
+		return next(new AppError('Search query is required', 400));
+	}
+
+	const searchTerm = q.trim();
+	const searchRegex = new RegExp(searchTerm, 'i');
+
+	// Base query for products matching search term
+	const baseQuery = {
+		active: true,
+		$or: [
+			{ name: searchRegex },
+			{ description: searchRegex },
+			{ shortDescription: searchRegex },
+			{ tags: { $in: [searchRegex] } },
+		],
+	};
+
+	// Parse filters from query parameters (reusing the existing parseFilters function)
+	const appliedFilters = parseFilters(req.query);
+
+	// Build final query with filters
+	const productQuery = buildProductQuery(baseQuery, appliedFilters);
+
+	// Get available filters based on base query (without applied filters)
+	const availableFilters = await getAvailableFilters(baseQuery);
+
+	// Create query with apiFeatures for pagination, sorting, and field limiting
+	const query = Product.find(productQuery);
+	const features = new apiFeatures(query, req.query).sort().limitFields();
+	const paginationInfo = await features.paginate();
+
+	// Execute query with population
+	const products = await features.query.populate([
+		{ path: 'category', select: 'name slug parentCategory' },
+		{ path: 'brand', select: 'name logo' },
+	]);
+
+	// Get total count for the search without filters (for display purposes)
+	const totalSearchResults = await Product.countDocuments(baseQuery);
+
+	// Attach search data to request object
+	req.searchPageData = {
+		query: searchTerm,
+		products,
+		totalSearchResults,
+		filters: {
+			available: availableFilters,
+			applied: appliedFilters,
+		},
+		pagination: {
+			...paginationInfo,
+			nextPage: paginationInfo.nextPage
+				? `${process.env.BASE_URL}/api/v1/search${
+						paginationInfo.nextPage
+				  }&${new URLSearchParams(appliedFilters).toString()}`
+				: null,
+			prevPage: paginationInfo.prevPage
+				? `${process.env.BASE_URL}/api/v1/search${
+						paginationInfo.prevPage
+				  }&${new URLSearchParams(appliedFilters).toString()}`
+				: null,
+		},
+	};
+
+	next();
+});
+
+// Enhanced search page middleware with additional search insights
+exports.searchPageWithInsights = catchAsync(async (req, res, next) => {
+	const { q } = req.query;
+
+	if (!q || q.trim() === '') {
+		return next(new AppError('Search query is required', 400));
+	}
+
+	const searchTerm = q.trim();
+	const searchRegex = new RegExp(searchTerm, 'i');
+
+	// Base query for products matching search term
+	const baseQuery = {
+		active: true,
+		$or: [
+			{ name: searchRegex },
+			{ description: searchRegex },
+			{ shortDescription: searchRegex },
+			{ tags: { $in: [searchRegex] } },
+		],
+	};
+
+	// Parse filters from query parameters
+	const appliedFilters = parseFilters(req.query);
+
+	// Build final query with filters
+	const productQuery = buildProductQuery(baseQuery, appliedFilters);
+
+	// Get available filters based on base query
+	const availableFilters = await getAvailableFilters(baseQuery);
+
+	// Create query with apiFeatures
+	const query = Product.find(productQuery);
+	const features = new apiFeatures(query, req.query).sort().limitFields();
+	const paginationInfo = await features.paginate();
+
+	// Execute main product query
+	const products = await features.query.populate([
+		{ path: 'category', select: 'name slug parentCategory' },
+		{ path: 'brand', select: 'name logo' },
+	]);
+
+	// Get search insights in parallel
+	const [
+		totalSearchResults,
+		relatedSubcategories,
+		relatedBrands,
+		searchSuggestions,
+	] = await Promise.all([
+		// Total search results without filters
+		Product.countDocuments(baseQuery),
+
+		// Related subcategories found in search results
+		Subcategory.aggregate([
+			{
+				$lookup: {
+					from: 'products',
+					let: { subcategoryId: '$_id' },
+					pipeline: [
+						{
+							$match: {
+								$expr: { $eq: ['$category', '$$subcategoryId'] },
+								...baseQuery,
+							},
+						},
+						{ $count: 'total' },
+					],
+					as: 'productCount',
+				},
+			},
+			{
+				$match: {
+					active: true,
+					'productCount.0.total': { $gt: 0 },
+				},
+			},
+			{
+				$lookup: {
+					from: 'categories',
+					localField: 'parentCategory',
+					foreignField: '_id',
+					as: 'parentCategory',
+				},
+			},
+			{
+				$project: {
+					_id: 1,
+					name: 1,
+					slug: 1,
+					parentCategory: {
+						_id: { $arrayElemAt: ['$parentCategory._id', 0] },
+						name: { $arrayElemAt: ['$parentCategory.name', 0] },
+						slug: { $arrayElemAt: ['$parentCategory.slug', 0] },
+					},
+					productCount: { $arrayElemAt: ['$productCount.total', 0] },
+				},
+			},
+			{
+				$sort: { productCount: -1 },
+			},
+			{
+				$limit: 10,
+			},
+		]),
+
+		// Related brands found in search results
+		Brand.aggregate([
+			{
+				$lookup: {
+					from: 'products',
+					let: { brandId: '$_id' },
+					pipeline: [
+						{
+							$match: {
+								$expr: { $eq: ['$brand', '$$brandId'] },
+								...baseQuery,
+							},
+						},
+						{ $count: 'total' },
+					],
+					as: 'productCount',
+				},
+			},
+			{
+				$match: {
+					active: true,
+					'productCount.0.total': { $gt: 0 },
+				},
+			},
+			{
+				$project: {
+					_id: 1,
+					name: 1,
+					slug: 1,
+					logo: 1,
+					productCount: { $arrayElemAt: ['$productCount.total', 0] },
+				},
+			},
+			{
+				$sort: { featuredBrand: -1, productCount: -1 },
+			},
+			{
+				$limit: 10,
+			},
+		]),
+
+		// Search suggestions based on similar products
+		Product.aggregate([
+			{
+				$match: baseQuery,
+			},
+			{
+				$unwind: '$tags',
+			},
+			{
+				$group: {
+					_id: '$tags',
+					count: { $sum: 1 },
+				},
+			},
+			{
+				$match: {
+					_id: { $not: searchRegex }, // Exclude the current search term
+				},
+			},
+			{
+				$sort: { count: -1 },
+			},
+			{
+				$limit: 5,
+			},
+			{
+				$project: {
+					_id: 0,
+					suggestion: '$_id',
+					count: 1,
+				},
+			},
+		]),
+	]);
+
+	// Attach comprehensive search data to request object
+	req.searchPageData = {
+		query: searchTerm,
+		products,
+		totalSearchResults,
+		filters: {
+			available: availableFilters,
+			applied: appliedFilters,
+		},
+		pagination: {
+			...paginationInfo,
+			nextPage: paginationInfo.nextPage
+				? `${process.env.BASE_URL}/api/v1/search${paginationInfo.nextPage}`
+				: null,
+			prevPage: paginationInfo.prevPage
+				? `${process.env.BASE_URL}/api/v1/search${paginationInfo.prevPage}`
+				: null,
+		},
+		insights: {
+			relatedSubcategories,
+			relatedBrands,
+			searchSuggestions,
+		},
+	};
+
+	next();
+});
+
+// Controller function to send search products results
+exports.sendSearchProducts = (req, res) => {
+	const { query, products, totalSearchResults, filters, pagination, insights } =
+		req.searchPageData;
+
+	const response = {
+		status: 'success',
+		results: products.length,
+		data: {
+			query,
+			totalSearchResults,
+			products,
+			filters,
+			pagination,
+		},
+	};
+
+	// Add insights if available
+	if (insights) {
+		response.data.insights = insights;
+	}
+
+	res.status(200).json(response);
+};
+
 // Management of products
 exports.getProduct = handlerFactory.getOne(
 	Product,

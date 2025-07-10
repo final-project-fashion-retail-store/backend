@@ -18,6 +18,18 @@ router
 		productController.sendSubcategoryProducts
 	);
 
+router.get(
+	'/search/popup',
+	productController.searchPopup,
+	productController.sendSearchPopupResults
+);
+
+router.get(
+	'/search',
+	productController.getProductsBySearch,
+	productController.sendSearchProducts
+);
+
 router.use(authController.protect);
 
 router
