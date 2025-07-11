@@ -130,7 +130,7 @@ class APIFeatures {
 
 			const queryString = Object.keys(queryParams)
 				.filter((key) => queryParams[key] !== undefined && queryParams[key] !== '')
-				.map((key) => `${key}=${encodeURIComponent(queryParams[key])}`)
+				.map((key) => `${key}=${queryParams[key]}`)
 				.join('&');
 
 			return `?${queryString}`;

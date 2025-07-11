@@ -30,6 +30,12 @@ router.get(
 	productController.sendSearchProducts
 );
 
+router.get(
+	'/brand/:brandSlug',
+	productController.getProductsByBrand,
+	productController.sendBrandProducts
+);
+
 router.use(authController.protect);
 
 router
