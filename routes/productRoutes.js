@@ -36,6 +36,18 @@ router.get(
 	productController.sendBrandProducts
 );
 
+router.get(
+	'/:productSlug',
+	productController.getProductBySlug,
+	productController.sendProduct
+);
+
+router.get(
+	'/related/:productSlug',
+	productController.getProductBySlug,
+	productController.getRelatedProducts
+);
+
 router.use(authController.protect);
 
 router

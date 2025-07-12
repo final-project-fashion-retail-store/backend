@@ -692,10 +692,10 @@ exports.getProductsBySearch = catchAsync(async (req, res, next) => {
 		pagination: {
 			...paginationInfo,
 			nextPage: paginationInfo.nextPage
-				? `${process.env.BASE_URL}/api/v1/search${paginationInfo.nextPage}`
+				? `${process.env.BASE_URL}/api/v1/products/search${paginationInfo.nextPage}`
 				: null,
 			prevPage: paginationInfo.prevPage
-				? `${process.env.BASE_URL}/api/v1/search${paginationInfo.prevPage}`
+				? `${process.env.BASE_URL}/api/v1/products/search${paginationInfo.prevPage}`
 				: null,
 		},
 	};
@@ -771,10 +771,10 @@ exports.getProductsByBrand = catchAsync(async (req, res, next) => {
 		pagination: {
 			...paginationInfo,
 			nextPage: paginationInfo.nextPage
-				? `${process.env.BASE_URL}/api/v1/brands/${brandSlug}/products${paginationInfo.nextPage}`
+				? `${process.env.BASE_URL}/api/v1/products/brand/${brandSlug}${paginationInfo.nextPage}`
 				: null,
 			prevPage: paginationInfo.prevPage
-				? `${process.env.BASE_URL}/api/v1/brands/${brandSlug}/products${paginationInfo.prevPage}`
+				? `${process.env.BASE_URL}/api/v1/products/brand/${brandSlug}${paginationInfo.prevPage}`
 				: null,
 		},
 	};
@@ -805,6 +805,155 @@ exports.sendBrandProducts = (req, res) => {
 		},
 	});
 };
+
+exports.getProductBySlug = catchAsync(async (req, res, next) => {
+	const { productSlug } = req.params;
+
+	// Find product by slug
+	const product = await Product.findOne({
+		slug: productSlug,
+		active: true,
+	}).populate([
+		{ path: 'category', select: 'name slug parentCategory' },
+		{ path: 'brand', select: 'name logo slug' },
+	]);
+
+	if (!product) {
+		return next(new AppError('Product not found', 404));
+	}
+
+	req.productData = {
+		product,
+	};
+
+	next();
+});
+
+// send product data for product by slug
+exports.sendProduct = (req, res) => {
+	const { product } = req.productData;
+
+	res.status(200).json({
+		status: 'success',
+		data: {
+			product,
+		},
+	});
+};
+
+exports.getRelatedProducts = catchAsync(async (req, res, next) => {
+	const { product } = req.productData;
+
+	if (!product) {
+		return next(new AppError('Product data not found', 400));
+	}
+
+	// Build query for related products
+	const relatedQuery = {
+		_id: { $ne: product._id }, // Exclude current product
+		active: true,
+		$or: [
+			{ category: product.category._id }, // Same subcategory
+			{ brand: product.brand._id }, // Same brand
+			{ tags: { $in: product.tags || [] } }, // Similar tags
+		],
+	};
+
+	// Get related products with scoring based on similarity
+	const relatedProducts = await Product.aggregate([
+		{
+			$match: relatedQuery,
+		},
+		{
+			$addFields: {
+				similarity: {
+					$add: [
+						// Score for same subcategory
+						{
+							$cond: [{ $eq: ['$category', product.category._id] }, 3, 0],
+						},
+						// Score for same brand
+						{
+							$cond: [{ $eq: ['$brand', product.brand._id] }, 2, 0],
+						},
+						// Score for matching tags
+						{
+							$size: {
+								$ifNull: [
+									{
+										$setIntersection: ['$tags', product.tags || []],
+									},
+									[],
+								],
+							},
+						},
+					],
+				},
+			},
+		},
+		{
+			$sort: {
+				similarity: -1,
+				featuredProduct: -1,
+				createdAt: -1,
+			},
+		},
+		{
+			$limit: 4,
+		},
+		{
+			$lookup: {
+				from: 'subcategories',
+				localField: 'category',
+				foreignField: '_id',
+				as: 'category',
+			},
+		},
+		{
+			$lookup: {
+				from: 'brands',
+				localField: 'brand',
+				foreignField: '_id',
+				as: 'brand',
+			},
+		},
+		{
+			$project: {
+				_id: 1,
+				name: 1,
+				slug: 1,
+				price: 1,
+				salePrice: 1,
+				images: 1,
+				averageRating: 1,
+				totalReviews: 1,
+				featuredProduct: 1,
+				inStock: 1,
+				category: {
+					_id: { $arrayElemAt: ['$category._id', 0] },
+					name: { $arrayElemAt: ['$category.name', 0] },
+					slug: { $arrayElemAt: ['$category.slug', 0] },
+				},
+				brand: {
+					_id: { $arrayElemAt: ['$brand._id', 0] },
+					name: { $arrayElemAt: ['$brand.name', 0] },
+					logo: { $arrayElemAt: ['$brand.logo', 0] },
+					slug: { $arrayElemAt: ['$brand.slug', 0] },
+				},
+				similarity: 1,
+				createdAt: 1,
+			},
+		},
+	]);
+
+	res.status(200).json({
+		status: 'success',
+		results: relatedProducts?.length || 0,
+		data: {
+			relatedProducts: relatedProducts || [],
+		},
+	});
+});
 
 // Management of products
 exports.getProduct = handlerFactory.getOne(
