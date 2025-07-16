@@ -37,40 +37,48 @@ router.get(
 );
 
 router.get(
-	'/:productSlug',
-	productController.getProductBySlug,
-	productController.sendProduct
-);
-
-router.get(
 	'/related/:productSlug',
 	productController.getProductBySlug,
 	productController.getRelatedProducts
 );
 
-router.use(authController.protect);
+// router.use(authController.protect);
 
 router
 	.route('/admin')
 	.get(
+		authController.protect,
 		authController.restrictTo('admin', 'staff'),
 		productController.getAllProducts
 	)
 	.post(
+		authController.protect,
 		authController.restrictTo('admin', 'staff'),
 		productController.createProduct
 	);
 
 router
-	.route('/:id')
-	.get(authController.restrictTo('admin', 'staff'), productController.getProduct)
+	.route('/admin/:id')
+	.get(
+		authController.protect,
+		authController.restrictTo('admin', 'staff'),
+		productController.getProduct
+	)
 	.patch(
+		authController.protect,
 		authController.restrictTo('admin', 'staff'),
 		productController.updateProduct
 	)
 	.delete(
+		authController.protect,
 		authController.restrictTo('admin', 'staff'),
 		productController.deleteProduct
 	);
+
+router.get(
+	'/:productSlug',
+	productController.getProductBySlug,
+	productController.sendProduct
+);
 
 module.exports = router;

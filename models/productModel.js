@@ -34,6 +34,7 @@ const ProductSchema = new Schema(
 		slug: { type: String, unique: true },
 		description: String,
 		shortDescription: String,
+		importPrice: { type: Number, required: true },
 		price: { type: Number, required: true },
 		salePrice: Number,
 		category: { type: Schema.Types.ObjectId, ref: 'Subcategory', required: true },
