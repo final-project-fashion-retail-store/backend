@@ -20,6 +20,7 @@ const brandRouter = require('./routes/brandRoutes');
 const productRouter = require('./routes/productRoutes');
 const messageRouter = require('./routes/messageRoutes');
 const wishlistRouter = require('./routes/wishlistRoutes');
+const cartRouter = require('./routes/cartRoutes');
 
 // GLOBAL MIDDLEWARES
 // Development logging
@@ -59,6 +60,7 @@ app.use('/api/v1/brands', brandRouter);
 app.use('/api/v1/products', productRouter);
 app.use('/api/v1/messages', messageRouter);
 app.use('/api/v1/wishlist', wishlistRouter);
+app.use('/api/v1/cart', cartRouter);
 
 app.all('/{*any}', (req, res, next) => {
 	next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));

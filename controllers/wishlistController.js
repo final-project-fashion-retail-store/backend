@@ -85,7 +85,7 @@ exports.removeFromWishlist = catchAsync(async (req, res, next) => {
 
 	res.status(204).json({
 		status: 'success',
-		message: 'Product removed from wishlist successfully',
+		data: null,
 	});
 });
 

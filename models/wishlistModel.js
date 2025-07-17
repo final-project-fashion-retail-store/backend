@@ -11,7 +11,6 @@ const wishlistSchema = new Schema({
 		type: mongoose.Schema.Types.ObjectId,
 		ref: 'Product',
 		required: [true, 'Wishlist must have a product'],
-		// autopopulate: { select: '-__v' },
 	},
 });
 
@@ -21,8 +20,6 @@ wishlistSchema.pre(/^find/, function () {
 		select: '-__v',
 	});
 });
-
-// wishlistSchema.plugin(require('mongoose-autopopulate'));
 
 const Wishlist = mongoose.model('Wishlist', wishlistSchema);
 
