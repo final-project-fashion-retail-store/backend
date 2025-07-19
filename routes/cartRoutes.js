@@ -12,5 +12,6 @@ router
 	.post(cartController.addToCart)
 	.patch(cartController.updateCartProduct)
 	.delete(cartController.removeFromCart);
+router.route('/total').get(cartController.getTotalCartProducts);
 
 module.exports = router;

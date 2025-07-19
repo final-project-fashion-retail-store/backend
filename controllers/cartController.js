@@ -4,9 +4,13 @@ const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 
 exports.getCart = catchAsync(async (req, res, next) => {
-	const cart = await Cart.findOne({ user: req.user._id }).populate(
-		'items.product'
-	);
+	const cart = await Cart.findOne({ user: req.user._id }).populate({
+		path: 'items.product',
+		populate: {
+			path: 'brand',
+			model: 'Brand',
+		},
+	});
 
 	res.status(200).json({
 		status: 'success',
@@ -62,7 +66,13 @@ exports.addToCart = catchAsync(async (req, res, next) => {
 	}
 
 	await cart.save();
-	await cart.populate('items.product');
+	await cart.populate({
+		path: 'items.product',
+		populate: {
+			path: 'brand',
+			model: 'Brand',
+		},
+	});
 
 	res.status(200).json({
 		status: 'success',
@@ -182,7 +192,13 @@ exports.updateCartProduct = catchAsync(async (req, res, next) => {
 	}
 
 	await cart.save();
-	await cart.populate('items.product');
+	await cart.populate({
+		path: 'items.product',
+		populate: {
+			path: 'brand',
+			model: 'Brand',
+		},
+	});
 
 	res.status(200).json({
 		status: 'success',
@@ -221,5 +237,16 @@ exports.removeFromCart = catchAsync(async (req, res, next) => {
 	res.status(204).json({
 		status: 'success',
 		data: null,
+	});
+});
+
+exports.getTotalCartProducts = catchAsync(async (req, res, next) => {
+	const cart = await Cart.findOne({ user: req.user._id });
+
+	res.status(200).json({
+		status: 'success',
+		data: {
+			totalProducts: cart ? cart.items.length : 0,
+		},
 	});
 });
