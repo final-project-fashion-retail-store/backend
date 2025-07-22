@@ -58,6 +58,7 @@ app.get('/hello', (req, res) => {
 });
 
 // Routes
+app.use('/api/v1/brands', brandRouter);
 app.use(apiKeyAuth);
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/users', userRouter);
@@ -65,7 +66,6 @@ app.use('/api/v1/images', imageRouter);
 app.use('/api/v1/addresses', addressRouter);
 app.use('/api/v1/categories', categoryRouter);
 app.use('/api/v1/subcategories', subcategoryRouter);
-app.use('/api/v1/brands', brandRouter);
 app.use('/api/v1/products', productRouter);
 app.use('/api/v1/messages', messageRouter);
 app.use('/api/v1/wishlist', wishlistRouter);
