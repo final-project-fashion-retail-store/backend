@@ -31,7 +31,7 @@ const createSendToken = async (user, statusCode, res, next) => {
 		),
 		httpOnly: true,
 		secure: process.env.NODE_ENV === 'production',
-		sameSite: 'strict',
+		sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
 	});
 
 	res.cookie('refreshToken', result, {
@@ -40,7 +40,7 @@ const createSendToken = async (user, statusCode, res, next) => {
 		),
 		httpOnly: true,
 		secure: process.env.NODE_ENV === 'production',
-		sameSite: 'strict',
+		sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
 	});
 
 	// Send response
@@ -152,7 +152,7 @@ exports.googleCallback = catchAsync(async (req, res) => {
 			),
 			httpOnly: true,
 			secure: process.env.NODE_ENV === 'production',
-			sameSite: 'strict',
+			sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
 		});
 
 		res.cookie('refreshToken', result, {
@@ -161,7 +161,7 @@ exports.googleCallback = catchAsync(async (req, res) => {
 			),
 			httpOnly: true,
 			secure: process.env.NODE_ENV === 'production',
-			sameSite: 'strict',
+			sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
 		});
 
 		// Redirect back to frontend with success
@@ -242,7 +242,7 @@ exports.refreshToken = catchAsync(async (req, res, next) => {
 		),
 		httpOnly: true,
 		secure: process.env.NODE_ENV === 'production',
-		sameSite: 'strict',
+		sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
 	});
 
 	// Set new refresh token in cookie
@@ -252,7 +252,7 @@ exports.refreshToken = catchAsync(async (req, res, next) => {
 		),
 		httpOnly: true,
 		secure: process.env.NODE_ENV === 'production',
-		sameSite: 'strict',
+		sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
 	});
 	// 8) Send response to client
 
