@@ -2,24 +2,9 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 const Order = require('../models/orderModel');
-const Cart = require('../models/cartModel'); // Assuming you have a cart model
-const User = require('../models/userModel'); // Assuming you have a user model
-
-// Helper function to calculate order totals
-const calculateOrderTotals = (items, shippingCost = 0, taxRate = 0.08) => {
-	const subtotal = items.reduce(
-		(sum, item) => sum + item.price * item.quantity,
-		0
-	);
-	const taxAmount = subtotal * taxRate;
-	const totalAmount = subtotal + shippingCost + taxAmount;
-
-	return {
-		subtotal: Math.round(subtotal * 100) / 100, // Round to 2 decimal places
-		taxAmount: Math.round(taxAmount * 100) / 100,
-		totalAmount: Math.round(totalAmount * 100) / 100,
-	};
-};
+const Cart = require('../models/cartModel');
+const User = require('../models/userModel');
+const { calculateOrderTotals } = require('../utils/order');
 
 // Create Payment Intent
 exports.createPaymentIntent = catchAsync(async (req, res, next) => {
