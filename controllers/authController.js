@@ -350,8 +350,18 @@ exports.logout = catchAsync(async (req, res, next) => {
 		next(err);
 	}
 
-	res.clearCookie('accessToken');
-	res.clearCookie('refreshToken');
+	const isProduction = process.env.NODE_ENV === 'production';
+	res.clearCookie('accessToken', {
+		httpOnly: true,
+		secure: isProduction,
+		sameSite: isProduction ? 'none' : 'strict',
+	});
+
+	res.clearCookie('refreshToken', {
+		httpOnly: true,
+		secure: isProduction,
+		sameSite: isProduction ? 'none' : 'strict',
+	});
 
 	res.status(204).json({
 		status: 'success',
