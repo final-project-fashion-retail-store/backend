@@ -34,11 +34,7 @@ app.use(helmet());
 // Enable CORS
 app.use(
 	cors({
-		origin: [
-			'http://localhost:5173',
-			'http://localhost:3000',
-			'https://backend-8kcv.onrender.com',
-		],
+		origin: ['http://localhost:5173', 'http://localhost:3000'],
 		credentials: true,
 	})
 );
@@ -53,13 +49,9 @@ app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(cookieParser());
 
-app.get('/hello', (req, res) => {
-	res.status(200).json({ message: 'Hello from the server!' });
-});
-
 // Routes
-app.use('/api/v1/brands', brandRouter);
 app.use(apiKeyAuth);
+app.use('/api/v1/brands', brandRouter);
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/images', imageRouter);
