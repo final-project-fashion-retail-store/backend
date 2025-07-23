@@ -41,14 +41,6 @@ app.use(
 
 app.options('/{*any}', cors());
 
-// Body parser, reading data from body into req.body
-app.set('query parser', (str) => {
-	return qs.parse(str);
-});
-app.use(express.json({ limit: '10kb' }));
-app.use(express.urlencoded({ extended: true, limit: '10kb' }));
-app.use(cookieParser());
-
 // Routes
 app.use(apiKeyAuth);
 app.use('/api/v1/brands', brandRouter);
@@ -63,6 +55,14 @@ app.use('/api/v1/messages', messageRouter);
 app.use('/api/v1/wishlist', wishlistRouter);
 app.use('/api/v1/cart', cartRouter);
 app.use('/api/v1/orders', orderRouter);
+
+// Body parser, reading data from body into req.body
+app.set('query parser', (str) => {
+	return qs.parse(str);
+});
+app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+app.use(cookieParser());
 
 app.all('/{*any}', (req, res, next) => {
 	next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));

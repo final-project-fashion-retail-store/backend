@@ -221,14 +221,10 @@ exports.stripeWebhook = catchAsync(async (req, res, next) => {
 			if (order) {
 				order.status = 'processing';
 				order.paymentDetails.status = 'paid';
-				order.updatedAt = Date.now();
 				await order.save();
 
 				// Clear user's cart after successful payment
-				await Cart.findOneAndUpdate(
-					{ user: order.userId },
-					{ $set: { items: [] } }
-				);
+				await Cart.findOneAndUpdate({ user: order.user }, { $set: { items: [] } });
 
 				console.log('Order confirmed:', order.orderNumber);
 			}
