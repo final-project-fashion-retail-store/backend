@@ -2,7 +2,10 @@ const AppError = require('../utils/appError');
 
 const apiKeyAuth = (req, res, next) => {
 	// Skip API key check for Google OAuth callback
-	if (req.path === '/api/v1/auth/google/callback') {
+	if (
+		req.path === '/api/v1/auth/google/callback' ||
+		req.path === '/api/v1/orders/webhook'
+	) {
 		return next();
 	}
 
