@@ -160,8 +160,8 @@ exports.cancelOrder = catchAsync(async (req, res, next) => {
 		return next(new AppError('Order not found', 404));
 	}
 
-	// Check if user owns this order
-	if (order.userId.toString() !== req.user.id && req.user.role !== 'admin') {
+	// Check if user owns this order (fixed the field name from userId to user)
+	if (order.user.toString() !== req.user.id && req.user.role !== 'admin') {
 		return next(new AppError('You can only cancel your own orders', 403));
 	}
 
@@ -192,7 +192,7 @@ exports.cancelOrder = catchAsync(async (req, res, next) => {
 	});
 });
 
-// Stripe webhook handler
+// Stripe webhook handler - FIXED VERSION
 exports.stripeWebhook = catchAsync(async (req, res, next) => {
 	const sig = req.headers['stripe-signature'];
 	let event;
@@ -208,42 +208,79 @@ exports.stripeWebhook = catchAsync(async (req, res, next) => {
 		return res.status(400).send(`Webhook Error: ${err.message}`);
 	}
 
+	console.log(`Received webhook event: ${event.type}`);
+
 	// Handle the event
 	switch (event.type) {
 		case 'payment_intent.succeeded':
 			const paymentIntent = event.data.object;
+			console.log('Processing payment_intent.succeeded for:', paymentIntent.id);
 
-			// Update order status
-			const order = await Order.findOne({
-				'paymentDetails.transactionId': paymentIntent.id,
-			});
+			try {
+				// Update order status
+				const order = await Order.findOne({
+					'paymentDetails.transactionId': paymentIntent.id,
+				});
 
-			if (order) {
-				order.status = 'processing';
-				order.paymentDetails.status = 'paid';
-				await order.save();
+				if (order) {
+					console.log('Found order:', order.orderNumber);
 
-				// Clear user's cart after successful payment
-				await Cart.findOneAndUpdate({ user: order.user }, { $set: { items: [] } });
+					// Update order status and payment details
+					order.status = 'processing';
+					order.paymentDetails.status = 'paid';
+					order.updatedAt = new Date();
 
-				console.log('Order confirmed:', order.orderNumber);
+					await order.save();
+					console.log('Order updated successfully:', order.orderNumber);
+
+					// Clear user's cart after successful payment
+					const cartResult = await Cart.findOneAndUpdate(
+						{ user: order.user },
+						{ $set: { items: [] } },
+						{ new: true }
+					);
+
+					if (cartResult) {
+						console.log('Cart cleared for user:', order.user);
+					} else {
+						console.log('No cart found for user:', order.user);
+					}
+
+					console.log('Order confirmed and cart cleared:', order.orderNumber);
+				} else {
+					console.log('No order found for payment intent:', paymentIntent.id);
+				}
+			} catch (error) {
+				console.error('Error processing payment_intent.succeeded:', error);
 			}
 			break;
 
 		case 'payment_intent.payment_failed':
 			const failedPayment = event.data.object;
+			console.log(
+				'Processing payment_intent.payment_failed for:',
+				failedPayment.id
+			);
 
-			// Update order status
-			const failedOrder = await Order.findOne({
-				'paymentDetails.transactionId': failedPayment.id,
-			});
+			try {
+				// Update order status
+				const failedOrder = await Order.findOne({
+					'paymentDetails.transactionId': failedPayment.id,
+				});
 
-			if (failedOrder) {
-				failedOrder.paymentDetails.status = 'failed';
-				failedOrder.updatedAt = Date.now();
-				await failedOrder.save();
+				if (failedOrder) {
+					console.log('Found failed order:', failedOrder.orderNumber);
 
-				console.log('Payment failed for order:', failedOrder.orderNumber);
+					failedOrder.paymentDetails.status = 'failed';
+					failedOrder.updatedAt = new Date();
+
+					await failedOrder.save();
+					console.log('Payment failed for order:', failedOrder.orderNumber);
+				} else {
+					console.log('No order found for failed payment intent:', failedPayment.id);
+				}
+			} catch (error) {
+				console.error('Error processing payment_intent.payment_failed:', error);
 			}
 			break;
 
