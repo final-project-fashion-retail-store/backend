@@ -5,11 +5,11 @@ const authController = require('../controllers/authController');
 const router = express.Router();
 
 // Stripe webhook - must be before any middleware that parses body as JSON
-router.post(
-	'/webhook',
-	express.raw({ type: 'application/json' }),
-	orderController.stripeWebhook
-);
+// router.post(
+// 	'/webhook',
+// 	express.raw({ type: 'application/json' }),
+// 	orderController.stripeWebhook
+// );
 
 // Protect all routes after this middleware (user must be logged in)
 router.use(authController.protect); // Assuming you have protect middleware

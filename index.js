@@ -21,7 +21,6 @@ const productRouter = require('./routes/productRoutes');
 const messageRouter = require('./routes/messageRoutes');
 const wishlistRouter = require('./routes/wishlistRoutes');
 const cartRouter = require('./routes/cartRoutes');
-const orderRouter = require('./routes/orderRoutes');
 
 // GLOBAL MIDDLEWARES
 // Development logging
@@ -41,6 +40,22 @@ app.use(
 
 app.options('/{*any}', cors());
 
+// IMPORTANT: Stripe webhook MUST come BEFORE express.json() middleware
+// This route needs raw body, not parsed JSON
+app.post(
+	'/api/v1/orders/webhook',
+	express.raw({ type: 'application/json' }),
+	orderController.stripeWebhook
+);
+
+// Body parser, reading data from body into req.body
+app.set('query parser', (str) => {
+	return qs.parse(str);
+});
+app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+app.use(cookieParser());
+
 // Routes
 app.use(apiKeyAuth);
 app.use('/api/v1/brands', brandRouter);
@@ -54,15 +69,10 @@ app.use('/api/v1/products', productRouter);
 app.use('/api/v1/messages', messageRouter);
 app.use('/api/v1/wishlist', wishlistRouter);
 app.use('/api/v1/cart', cartRouter);
-app.use('/api/v1/orders', orderRouter);
 
-// Body parser, reading data from body into req.body
-app.set('query parser', (str) => {
-	return qs.parse(str);
-});
-app.use(express.json({ limit: '10kb' }));
-app.use(express.urlencoded({ extended: true, limit: '10kb' }));
-app.use(cookieParser());
+// Order routes (excluding webhook which is handled above)
+const orderRouter = require('./routes/orderRoutes');
+app.use('/api/v1/orders', orderRouter);
 
 app.all('/{*any}', (req, res, next) => {
 	next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
