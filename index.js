@@ -21,6 +21,7 @@ const productRouter = require('./routes/productRoutes');
 const messageRouter = require('./routes/messageRoutes');
 const wishlistRouter = require('./routes/wishlistRoutes');
 const cartRouter = require('./routes/cartRoutes');
+const orderController = require('./controllers/orderController');
 
 // GLOBAL MIDDLEWARES
 // Development logging
