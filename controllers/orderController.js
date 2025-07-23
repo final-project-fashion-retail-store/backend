@@ -6,6 +6,42 @@ const Cart = require('../models/cartModel');
 const User = require('../models/userModel');
 const { calculateOrderTotals } = require('../utils/order');
 
+// Create Payment Intent
+// exports.createPaymentIntent = catchAsync(async (req, res, next) => {
+// 	const { totalAmount, currency = 'usd', orderNumber, metadata = {} } = req.body;
+
+// 	if (!totalAmount) {
+// 		return next(new AppError('Total amount is required', 400));
+// 	}
+
+// 	try {
+// 		const paymentIntent = await stripe.paymentIntents.create({
+// 			amount: Math.round(totalAmount * 100), // Convert to cents
+// 			currency: currency.toLowerCase(),
+// 			metadata: {
+// 				userId: req.user?.id || 'guest',
+// 				orderNumber: orderNumber || Date.now().toString(),
+// 				...metadata,
+// 			},
+// 			automatic_payment_methods: {
+// 				enabled: true,
+// 			},
+// 		});
+
+// 		res.status(200).json({
+// 			status: 'success',
+// 			data: {
+// 				clientSecret: paymentIntent.client_secret,
+// 				paymentIntentId: paymentIntent.id,
+// 			},
+// 		});
+// 	} catch (error) {
+// 		return next(
+// 			new AppError(`Payment intent creation failed: ${error.message}`, 400)
+// 		);
+// 	}
+// });
+
 // Create order from cart
 exports.createOrderFromCart = catchAsync(async (req, res, next) => {
 	const userId = req.user._id;
@@ -41,7 +77,7 @@ exports.createOrderFromCart = catchAsync(async (req, res, next) => {
 		// Check if product exists, variant exists, and variant has sufficient inventory
 		return product && variant && variant.inventory >= cartItem.quantity;
 	});
-
+	// console.log(availableItems);
 	// Transform cart items to order items format
 	const orderItems = availableItems.map((cartItem) => {
 		const product = cartItem.product;
@@ -61,7 +97,7 @@ exports.createOrderFromCart = catchAsync(async (req, res, next) => {
 			image,
 		};
 	});
-
+	console.log(orderItems);
 	// Calculate totals
 	const totals = calculateOrderTotals(orderItems, shippingCost, taxRate);
 
@@ -92,24 +128,15 @@ exports.createOrderFromCart = catchAsync(async (req, res, next) => {
 			metadata: {
 				userId: userId.toString(),
 				orderNumber: order.orderNumber,
-				orderId: order._id.toString(), // Add orderId to metadata for easier lookup
 			},
 			automatic_payment_methods: {
 				enabled: true,
 			},
 		});
 
-		console.log('Created payment intent:', paymentIntent.id);
-		console.log('Updating order:', order._id, 'with transaction ID');
-
 		// Update order with payment details
 		order.paymentDetails.transactionId = paymentIntent.id;
 		await order.save();
-
-		console.log(
-			'Order saved with transaction ID:',
-			order.paymentDetails.transactionId
-		);
 
 		clientSecret = paymentIntent.client_secret;
 	}
@@ -133,8 +160,8 @@ exports.cancelOrder = catchAsync(async (req, res, next) => {
 		return next(new AppError('Order not found', 404));
 	}
 
-	// Check if user owns this order (fixed the field name from userId to user)
-	if (order.user.toString() !== req.user.id && req.user.role !== 'admin') {
+	// Check if user owns this order
+	if (order.userId.toString() !== req.user.id && req.user.role !== 'admin') {
 		return next(new AppError('You can only cancel your own orders', 403));
 	}
 
@@ -165,7 +192,7 @@ exports.cancelOrder = catchAsync(async (req, res, next) => {
 	});
 });
 
-// Stripe webhook handler - FIXED VERSION
+// Stripe webhook handler
 exports.stripeWebhook = catchAsync(async (req, res, next) => {
 	const sig = req.headers['stripe-signature'];
 	let event;
@@ -181,117 +208,42 @@ exports.stripeWebhook = catchAsync(async (req, res, next) => {
 		return res.status(400).send(`Webhook Error: ${err.message}`);
 	}
 
-	console.log(`Received webhook event: ${event.type}`);
-
 	// Handle the event
 	switch (event.type) {
 		case 'payment_intent.succeeded':
 			const paymentIntent = event.data.object;
-			console.log('Processing payment_intent.succeeded for:', paymentIntent.id);
 
-			try {
-				// First, let's check all orders to see what transaction IDs exist
-				const allOrders = await Order.find(
-					{},
-					'paymentDetails.transactionId orderNumber'
-				).lean();
-				console.log('All orders with transaction IDs:', allOrders);
+			// Update order status
+			const order = await Order.findOne({
+				'paymentDetails.transactionId': paymentIntent.id,
+			});
 
-				// Update order status
-				const order = await Order.findOne({
-					'paymentDetails.transactionId': paymentIntent.id,
-				});
+			if (order) {
+				order.status = 'processing';
+				order.paymentDetails.status = 'paid';
+				await order.save();
 
-				if (order) {
-					console.log('Found order:', order.orderNumber);
+				// Clear user's cart after successful payment
+				await Cart.findOneAndUpdate({ user: order.user }, { $set: { items: [] } });
 
-					// Update order status and payment details
-					order.status = 'processing';
-					order.paymentDetails.status = 'paid';
-					order.updatedAt = new Date();
-
-					await order.save();
-					console.log('Order updated successfully:', order.orderNumber);
-
-					// Clear user's cart after successful payment
-					const cartResult = await Cart.findOneAndUpdate(
-						{ user: order.user },
-						{ $set: { items: [] } },
-						{ new: true }
-					);
-
-					if (cartResult) {
-						console.log('Cart cleared for user:', order.user);
-					} else {
-						console.log('No cart found for user:', order.user);
-					}
-
-					console.log('Order confirmed and cart cleared:', order.orderNumber);
-				} else {
-					console.log('No order found for payment intent:', paymentIntent.id);
-
-					// Let's also try to find by order ID from metadata
-					if (paymentIntent.metadata && paymentIntent.metadata.orderId) {
-						console.log(
-							'Trying to find order by ID from metadata:',
-							paymentIntent.metadata.orderId
-						);
-						const orderById = await Order.findById(paymentIntent.metadata.orderId);
-						if (orderById) {
-							console.log('Found order by metadata ID:', orderById.orderNumber);
-							console.log(
-								'Order transaction ID:',
-								orderById.paymentDetails.transactionId
-							);
-
-							// Update this order with the correct transaction ID and status
-							orderById.paymentDetails.transactionId = paymentIntent.id;
-							orderById.status = 'processing';
-							orderById.paymentDetails.status = 'paid';
-							orderById.updatedAt = new Date();
-
-							await orderById.save();
-							console.log('Updated order via metadata lookup:', orderById.orderNumber);
-
-							// Clear user's cart
-							await Cart.findOneAndUpdate(
-								{ user: orderById.user },
-								{ $set: { items: [] } }
-							);
-						}
-					}
-				}
-			} catch (error) {
-				console.error('Error processing payment_intent.succeeded:', error);
+				console.log('Order confirmed:', order.orderNumber);
 			}
 			break;
 
 		case 'payment_intent.payment_failed':
 			const failedPayment = event.data.object;
-			console.log(
-				'Processing payment_intent.payment_failed for:',
-				failedPayment.id
-			);
 
-			try {
-				// Update order status
-				const failedOrder = await Order.findOne({
-					'paymentDetails.transactionId': failedPayment.id,
-				});
+			// Update order status
+			const failedOrder = await Order.findOne({
+				'paymentDetails.transactionId': failedPayment.id,
+			});
 
-				if (failedOrder) {
-					console.log('Found failed order:', failedOrder.orderNumber);
+			if (failedOrder) {
+				failedOrder.paymentDetails.status = 'failed';
+				failedOrder.updatedAt = Date.now();
+				await failedOrder.save();
 
-					failedOrder.paymentDetails.status = 'failed';
-					failedOrder.updatedAt = new Date();
-
-					await failedOrder.save();
-					console.log('Payment failed for order:', failedOrder.orderNumber);
-				} else {
-					console.log('No order found for failed payment intent:', failedPayment.id);
-				}
-			} catch (error) {
-				console.error('Error processing payment_intent.payment_failed:', error);
+				console.log('Payment failed for order:', failedOrder.orderNumber);
 			}
 			break;
 
