@@ -7,40 +7,40 @@ const User = require('../models/userModel');
 const { calculateOrderTotals } = require('../utils/order');
 
 // Create Payment Intent
-exports.createPaymentIntent = catchAsync(async (req, res, next) => {
-	const { totalAmount, currency = 'usd', orderNumber, metadata = {} } = req.body;
+// exports.createPaymentIntent = catchAsync(async (req, res, next) => {
+// 	const { totalAmount, currency = 'usd', orderNumber, metadata = {} } = req.body;
 
-	if (!totalAmount) {
-		return next(new AppError('Total amount is required', 400));
-	}
+// 	if (!totalAmount) {
+// 		return next(new AppError('Total amount is required', 400));
+// 	}
 
-	try {
-		const paymentIntent = await stripe.paymentIntents.create({
-			amount: Math.round(totalAmount * 100), // Convert to cents
-			currency: currency.toLowerCase(),
-			metadata: {
-				userId: req.user?.id || 'guest',
-				orderNumber: orderNumber || Date.now().toString(),
-				...metadata,
-			},
-			automatic_payment_methods: {
-				enabled: true,
-			},
-		});
+// 	try {
+// 		const paymentIntent = await stripe.paymentIntents.create({
+// 			amount: Math.round(totalAmount * 100), // Convert to cents
+// 			currency: currency.toLowerCase(),
+// 			metadata: {
+// 				userId: req.user?.id || 'guest',
+// 				orderNumber: orderNumber || Date.now().toString(),
+// 				...metadata,
+// 			},
+// 			automatic_payment_methods: {
+// 				enabled: true,
+// 			},
+// 		});
 
-		res.status(200).json({
-			status: 'success',
-			data: {
-				clientSecret: paymentIntent.client_secret,
-				paymentIntentId: paymentIntent.id,
-			},
-		});
-	} catch (error) {
-		return next(
-			new AppError(`Payment intent creation failed: ${error.message}`, 400)
-		);
-	}
-});
+// 		res.status(200).json({
+// 			status: 'success',
+// 			data: {
+// 				clientSecret: paymentIntent.client_secret,
+// 				paymentIntentId: paymentIntent.id,
+// 			},
+// 		});
+// 	} catch (error) {
+// 		return next(
+// 			new AppError(`Payment intent creation failed: ${error.message}`, 400)
+// 		);
+// 	}
+// });
 
 // Create order from cart
 exports.createOrderFromCart = catchAsync(async (req, res, next) => {
@@ -51,7 +51,6 @@ exports.createOrderFromCart = catchAsync(async (req, res, next) => {
 		paymentMethod = 'stripe',
 		shippingCost = 0,
 		taxRate = 0.1,
-		notes,
 	} = req.body;
 
 	// Validate required addresses
@@ -60,46 +59,55 @@ exports.createOrderFromCart = catchAsync(async (req, res, next) => {
 	}
 
 	// Get user's cart with populated product details
-	const cart = await Cart.findOne({ user: userId })
-		.populate({
-			path: 'items.product',
-			select: 'name price images',
-		})
-		.populate({
-			path: 'items.variantId',
-			select: 'price importPrice',
-		});
+	const cart = await Cart.findOne({ user: userId }).populate({
+		path: 'items.product',
+	});
 
 	if (!cart || cart.items.length === 0) {
 		return next(new AppError('Cart is empty', 400));
 	}
 
-	// Transform cart items to order items format
-	const orderItems = cart.items.map((cartItem) => {
+	// Get available cart items
+	const availableItems = cart.items.filter((cartItem) => {
 		const product = cartItem.product;
-		const variant = cartItem.variantId;
+		const variant = cartItem.product.variants.find(
+			(v) => v._id.toString() === cartItem.variantId.toString()
+		);
+
+		// Check if product exists, variant exists, and variant has sufficient inventory
+		return product && variant && variant.inventory >= cartItem.quantity;
+	});
+	// console.log(availableItems);
+	// Transform cart items to order items format
+	const orderItems = availableItems.map((cartItem) => {
+		const product = cartItem.product;
+		const variant = cartItem.product.variants.find(
+			(v) => v._id.toString() === cartItem.variantId.toString()
+		);
+
+		const image = product.colorImages.get(variant.color)[0].url;
 
 		return {
 			productId: product._id,
-			variantId: variant?._id,
+			variantId: variant._id,
 			quantity: cartItem.quantity,
-			price: variant?.salePrice,
+			price: variant.salePrice,
 			importPrice: product.importPrice,
 			name: product.name,
-			image: product.images[0].url,
+			image,
 		};
 	});
-
+	console.log(orderItems);
 	// Calculate totals
 	const totals = calculateOrderTotals(orderItems, shippingCost, taxRate);
 
 	// Create order
 	const order = await Order.create({
-		userId: userId,
+		user: userId,
 		items: orderItems,
-		shippingAddress: shippingAddress,
-		billingAddress: billingAddress,
-		paymentMethod: paymentMethod,
+		shippingAddress,
+		billingAddress,
+		paymentMethod,
 		paymentDetails: {
 			provider: paymentMethod,
 			status: 'pending',
@@ -109,7 +117,6 @@ exports.createOrderFromCart = catchAsync(async (req, res, next) => {
 		taxAmount: totals.taxAmount,
 		totalAmount: totals.totalAmount,
 		status: 'pending',
-		notes: notes,
 	});
 
 	// Create payment intent if using Stripe
@@ -119,7 +126,7 @@ exports.createOrderFromCart = catchAsync(async (req, res, next) => {
 			amount: Math.round(totals.totalAmount * 100),
 			currency: 'usd',
 			metadata: {
-				userId: userId,
+				userId: userId.toString(),
 				orderNumber: order.orderNumber,
 			},
 			automatic_payment_methods: {

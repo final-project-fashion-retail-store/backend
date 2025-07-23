@@ -15,7 +15,7 @@ router.post(
 router.use(authController.protect); // Assuming you have protect middleware
 
 // Create payment intent
-router.post('/create-payment-intent', orderController.createPaymentIntent);
+// router.post('/create-payment-intent', orderController.createPaymentIntent);
 
 // Create order routes
 router.post('/create-from-cart', orderController.createOrderFromCart);

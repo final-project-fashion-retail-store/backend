@@ -64,7 +64,7 @@ const orderSchema = new mongoose.Schema(
 		orderNumber: {
 			type: String,
 			unique: true,
-			required: [true, 'Order must have an order number'],
+			// required: [true, 'Order must have an order number'],
 		},
 		user: {
 			type: mongoose.Schema.Types.ObjectId,
@@ -132,17 +132,6 @@ const orderSchema = new mongoose.Schema(
 		trackingNumber: {
 			type: String,
 		},
-		notes: {
-			type: String,
-		},
-		createdAt: {
-			type: Date,
-			default: Date.now,
-		},
-		updatedAt: {
-			type: Date,
-			default: Date.now,
-		},
 	},
 	{
 		timestamps: true,
@@ -178,11 +167,6 @@ orderSchema.pre('save', function (next) {
 			.toString()
 			.padStart(3, '0');
 		this.orderNumber = `ORD-${timestamp.slice(-6)}${randomNum}`;
-	}
-
-	// Update updatedAt on save (if not using timestamps option)
-	if (!this.isNew) {
-		this.updatedAt = Date.now();
 	}
 
 	next();
