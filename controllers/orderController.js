@@ -4,6 +4,7 @@ const AppError = require('../utils/appError');
 const Order = require('../models/orderModel');
 const Cart = require('../models/cartModel');
 const Product = require('../models/productModel');
+const handlerFactory = require('./handlerFactory');
 const {
 	calculateOrderTotals,
 	updateProductInventory,
@@ -55,7 +56,7 @@ exports.createOrderFromCart = catchAsync(async (req, res, next) => {
 		const image = product.colorImages.get(variant.color)[0].url;
 
 		return {
-			productId: product._id,
+			product: product._id,
 			variantId: variant._id,
 			quantity: cartItem.quantity,
 			price: variant.salePrice,
@@ -224,3 +225,10 @@ exports.stripeWebhook = catchAsync(async (req, res, next) => {
 
 	res.status(200).json({ received: true });
 });
+
+// admin
+exports.getAllOrders = handlerFactory.getAll(Order, 'orders', [
+	{ path: 'user' },
+	{ path: 'items.product' },
+]);
+exports.updateOrder = handlerFactory.updateOne(Order);

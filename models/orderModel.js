@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 
 const orderItemSchema = new mongoose.Schema(
 	{
-		productId: {
+		product: {
 			type: mongoose.Schema.ObjectId,
 			ref: 'Product',
 			required: [true, 'Order item must have a product ID'],
@@ -35,6 +35,11 @@ const orderItemSchema = new mongoose.Schema(
 			type: String,
 			required: [true, 'Order item must have an image'],
 		},
+		reviewed: {
+			type: Boolean,
+			default: false,
+		},
+		reviewExpireDate: Date,
 	},
 	{ _id: false }
 );
@@ -158,6 +163,11 @@ orderSchema.index({ userId: 1, createdAt: -1 });
 orderSchema.index({ status: 1 });
 // orderSchema.index({ 'paymentDetails.transactionId': 1 });
 
+orderItemSchema.virtual('reviewExpired').get(function () {
+	if (!this.reviewExpireDate) return false;
+	return new Date() > this.reviewExpireDate;
+});
+
 // Pre-save middleware to generate order number and update timestamp
 orderSchema.pre('save', function (next) {
 	// Generate order number if it doesn't exist
@@ -172,18 +182,42 @@ orderSchema.pre('save', function (next) {
 	next();
 });
 
-// Virtual for total items quantity
-orderSchema.virtual('totalItems').get(function () {
-	return this.items.reduce((total, item) => total + item.quantity, 0);
-});
+orderSchema.pre('findOneAndUpdate', async function (next) {
+	const update = this.getUpdate();
 
-// Virtual for full name in addresses
-orderSchema.virtual('shippingAddress.fullName').get(function () {
-	return `${this.shippingAddress.firstName} ${this.shippingAddress.lastName}`;
-});
+	// Check if status is being updated to 'delivered'
+	if (
+		update.status === 'delivered' ||
+		(update.$set && update.$set.status === 'delivered')
+	) {
+		const reviewExpireDate = new Date();
+		reviewExpireDate.setDate(reviewExpireDate.getDate() + 15);
 
-orderSchema.virtual('billingAddress.fullName').get(function () {
-	return `${this.billingAddress.firstName} ${this.billingAddress.lastName}`;
+		// Get the current document to check existing items
+		const currentDoc = await this.model.findOne(this.getQuery());
+
+		if (currentDoc) {
+			// Update items that haven't been reviewed and don't have expire date
+			const updatedItems = currentDoc.items.map((item) => {
+				if (!item.reviewed && !item.reviewExpireDate) {
+					return {
+						...item.toObject(),
+						reviewExpireDate: reviewExpireDate,
+					};
+				}
+				return item;
+			});
+
+			// Set the updated items in the update operation
+			if (update.$set) {
+				update.$set.items = updatedItems;
+			} else {
+				update.items = updatedItems;
+			}
+		}
+	}
+
+	next();
 });
 
 const Order = mongoose.model('Order', orderSchema);
