@@ -3,44 +3,11 @@ const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 const Order = require('../models/orderModel');
 const Cart = require('../models/cartModel');
-const User = require('../models/userModel');
-const { calculateOrderTotals } = require('../utils/order');
-
-// Create Payment Intent
-// exports.createPaymentIntent = catchAsync(async (req, res, next) => {
-// 	const { totalAmount, currency = 'usd', orderNumber, metadata = {} } = req.body;
-
-// 	if (!totalAmount) {
-// 		return next(new AppError('Total amount is required', 400));
-// 	}
-
-// 	try {
-// 		const paymentIntent = await stripe.paymentIntents.create({
-// 			amount: Math.round(totalAmount * 100), // Convert to cents
-// 			currency: currency.toLowerCase(),
-// 			metadata: {
-// 				userId: req.user?.id || 'guest',
-// 				orderNumber: orderNumber || Date.now().toString(),
-// 				...metadata,
-// 			},
-// 			automatic_payment_methods: {
-// 				enabled: true,
-// 			},
-// 		});
-
-// 		res.status(200).json({
-// 			status: 'success',
-// 			data: {
-// 				clientSecret: paymentIntent.client_secret,
-// 				paymentIntentId: paymentIntent.id,
-// 			},
-// 		});
-// 	} catch (error) {
-// 		return next(
-// 			new AppError(`Payment intent creation failed: ${error.message}`, 400)
-// 		);
-// 	}
-// });
+const Product = require('../models/productModel');
+const {
+	calculateOrderTotals,
+	updateProductInventory,
+} = require('../utils/order');
 
 // Create order from cart
 exports.createOrderFromCart = catchAsync(async (req, res, next) => {
@@ -97,7 +64,7 @@ exports.createOrderFromCart = catchAsync(async (req, res, next) => {
 			image,
 		};
 	});
-	console.log(orderItems);
+
 	// Calculate totals
 	const totals = calculateOrderTotals(orderItems, shippingCost, taxRate);
 
@@ -219,6 +186,10 @@ exports.stripeWebhook = catchAsync(async (req, res, next) => {
 			});
 
 			if (order) {
+				// Update inventory BEFORE updating order status
+				await updateProductInventory(order.items, Product);
+
+				// Update order status
 				order.status = 'processing';
 				order.paymentDetails.status = 'paid';
 				await order.save();
