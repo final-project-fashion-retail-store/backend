@@ -74,8 +74,8 @@ exports.createReview = catchAsync(async (req, res, next) => {
 		return next(new AppError('You have already reviewed this product', 400));
 	}
 
-	if (orderItem.reviewExpired) {
-		return next(new AppError('Review period has expired', 400));
+	if (order.reviewExpired) {
+		return next(new AppError('Review period has expired for this order', 400));
 	}
 
 	// Ensure the user is the one who made the order
@@ -95,7 +95,14 @@ exports.createReview = catchAsync(async (req, res, next) => {
 
 	// Update the order item to mark it as reviewed
 	orderItem.reviewed = true;
-	orderItem.reviewExpireDate = undefined; // Clear the expire date since review is done
+
+	// Check if all items in the order have been reviewed
+	const allItemsReviewed = order.items.every((item) => item.reviewed);
+
+	// If all items are reviewed, clear the reviewExpireDate
+	if (allItemsReviewed) {
+		order.reviewExpireDate = undefined;
+	}
 	await order.save();
 
 	res.status(201).json({
