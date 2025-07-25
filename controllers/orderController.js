@@ -5,6 +5,7 @@ const Order = require('../models/orderModel');
 const Cart = require('../models/cartModel');
 const Product = require('../models/productModel');
 const handlerFactory = require('./handlerFactory');
+const apiFeatures = require('../utils/apiFeatures');
 const {
 	calculateOrderTotals,
 	updateProductInventory,
@@ -224,6 +225,44 @@ exports.stripeWebhook = catchAsync(async (req, res, next) => {
 	}
 
 	res.status(200).json({ received: true });
+});
+
+// Get user's orders
+exports.getUserOrders = catchAsync(async (req, res, next) => {
+	const query = Order.find({ user: req.user._id });
+
+	const features = new apiFeatures(query, req.query)
+		.filter()
+		.sort()
+		.limitFields();
+
+	const paginationInfo = await features.paginate();
+
+	// Execute the query with population
+	const orders = await features.query.populate(
+		'items.product',
+		'name variants colorImages'
+	);
+
+	res.status(200).json({
+		status: 'success',
+		results: orders.length,
+		data: {
+			orders,
+			pagination: {
+				totalDocs: paginationInfo.totalDocs,
+				totalPages: paginationInfo.totalPages,
+				currentPage: paginationInfo.currentPage,
+				accumulator: paginationInfo.accumulator,
+				nextPage: paginationInfo.nextPage
+					? `${process.env.BASE_URL}/api/v1/orders/{paginationInfo.nextPage}`
+					: null,
+				prevPage: paginationInfo.prevPage
+					? `${process.env.BASE_URL}/api/v1/orders/${paginationInfo.prevPage}`
+					: null,
+			},
+		},
+	});
 });
 
 // admin

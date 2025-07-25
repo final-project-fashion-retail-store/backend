@@ -47,11 +47,20 @@ exports.getReviews = catchAsync(async (req, res, next) => {
 exports.createReview = catchAsync(async (req, res, next) => {
 	// Check whether the review is expired
 	const order = await Order.findById(req.body.orderId);
+
+	if (!order) {
+		return next(new AppError('Order not found', 404));
+	}
+
 	const orderItem = order.items.find(
 		(item) =>
 			item.product.toString() === req.body.productId &&
 			item.variantId.toString() === req.body.variantId
 	);
+
+	if (!orderItem) {
+		return next(new AppError('Order item not found', 404));
+	}
 
 	if (orderItem.status !== 'delivered') {
 		return next(new AppError('You can only review delivered products', 400));
@@ -89,6 +98,30 @@ exports.createReview = catchAsync(async (req, res, next) => {
 		status: 'success',
 		data: {
 			review: newReview,
+		},
+	});
+});
+
+exports.updateReview = catchAsync(async (req, res, next) => {
+	const review = await Review.findById(req.params.id);
+
+	if (!review) {
+		return next(new AppError('Review not found', 404));
+	}
+
+	if (review.user.toString() !== req.user._id.toString()) {
+		return next(new AppError('You can only update your own reviews', 403));
+	}
+
+	const updatedReview = await Review.findByIdAndUpdate(req.params.id, req.body, {
+		new: true,
+		runValidators: true,
+	});
+
+	res.status(200).json({
+		status: 'success',
+		data: {
+			review: updatedReview,
 		},
 	});
 });

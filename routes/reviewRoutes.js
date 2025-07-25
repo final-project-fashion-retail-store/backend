@@ -10,4 +10,6 @@ router.use(authController.protect, authController.restrictTo('user'));
 
 router.route('/').post(reviewController.createReview);
 
+router.route('/:id').patch(reviewController.updateReview);
+
 module.exports = router;

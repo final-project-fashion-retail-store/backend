@@ -6,6 +6,8 @@ const router = express.Router();
 
 router.use(authController.protect);
 
+router.route('/').get(orderController.getUserOrders);
+
 // Create order routes
 router.post('/create-from-cart', orderController.createOrderFromCart);
 
@@ -15,7 +17,7 @@ router.patch('/:id/cancel', orderController.cancelOrder);
 // admin
 router.use(authController.restrictTo('admin', 'staff'));
 
-router.route('/').get(orderController.getAllOrders);
+router.route('/admin').get(orderController.getAllOrders);
 router.route('/:id').patch(orderController.updateOrder);
 
 module.exports = router;
