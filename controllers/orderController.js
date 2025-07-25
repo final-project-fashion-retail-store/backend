@@ -239,10 +239,9 @@ exports.getUserOrders = catchAsync(async (req, res, next) => {
 	const paginationInfo = await features.paginate();
 
 	// Execute the query with population
-	const orders = await features.query.populate(
-		'items.product',
-		'name variants colorImages'
-	);
+	const orders = await features.query
+		.populate('items.product', 'name variants colorImages')
+		.populate('shippingAddress');
 
 	res.status(200).json({
 		status: 'success',
@@ -268,7 +267,7 @@ exports.getUserOrders = catchAsync(async (req, res, next) => {
 // admin
 exports.getAllOrders = handlerFactory.getAll(Order, 'orders', [
 	{ path: 'user' },
-	{ path: 'items.product' },
 	{ path: 'shippingAddress' },
+	{ path: 'items.product' },
 ]);
 exports.updateOrder = handlerFactory.updateOne(Order);
