@@ -39,7 +39,6 @@ const orderItemSchema = new mongoose.Schema(
 			type: Boolean,
 			default: false,
 		},
-		reviewExpireDate: Date,
 	},
 	{ _id: false }
 );
@@ -137,6 +136,7 @@ const orderSchema = new mongoose.Schema(
 		trackingNumber: {
 			type: String,
 		},
+		reviewExpireDate: Date,
 	},
 	{
 		timestamps: true,
@@ -163,8 +163,9 @@ orderSchema.index({ userId: 1, createdAt: -1 });
 orderSchema.index({ status: 1 });
 // orderSchema.index({ 'paymentDetails.transactionId': 1 });
 
-orderItemSchema.virtual('reviewExpired').get(function () {
-	if (!this.reviewExpireDate) return false;
+orderSchema.virtual('reviewExpired').get(function () {
+	if (this.reviewExpireDate === null) return false;
+	if (this.reviewExpireDate === undefined) return undefined;
 	return new Date() > this.reviewExpireDate;
 });
 
@@ -182,7 +183,7 @@ orderSchema.pre('save', function (next) {
 	next();
 });
 
-orderSchema.pre('findOneAndUpdate', async function (next) {
+orderSchema.pre('findOneAndUpdate', async function () {
 	const update = this.getUpdate();
 
 	// Check if status is being updated to 'delivered'
@@ -193,31 +194,13 @@ orderSchema.pre('findOneAndUpdate', async function (next) {
 		const reviewExpireDate = new Date();
 		reviewExpireDate.setDate(reviewExpireDate.getDate() + 15);
 
-		// Get the current document to check existing items
-		const currentDoc = await this.model.findOne(this.getQuery());
-
-		if (currentDoc) {
-			// Update items that haven't been reviewed and don't have expire date
-			const updatedItems = currentDoc.items.map((item) => {
-				if (!item.reviewed && !item.reviewExpireDate) {
-					return {
-						...item.toObject(),
-						reviewExpireDate: reviewExpireDate,
-					};
-				}
-				return item;
-			});
-
-			// Set the updated items in the update operation
-			if (update.$set) {
-				update.$set.items = updatedItems;
-			} else {
-				update.items = updatedItems;
-			}
+		// Set the reviewExpireDate at the order level
+		if (update.$set) {
+			update.$set.reviewExpireDate = reviewExpireDate;
+		} else {
+			update.reviewExpireDate = reviewExpireDate;
 		}
 	}
-
-	next();
 });
 
 const Order = mongoose.model('Order', orderSchema);
