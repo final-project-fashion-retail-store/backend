@@ -269,5 +269,6 @@ exports.getUserOrders = catchAsync(async (req, res, next) => {
 exports.getAllOrders = handlerFactory.getAll(Order, 'orders', [
 	{ path: 'user' },
 	{ path: 'items.product' },
+	{ path: 'shippingAddress' },
 ]);
 exports.updateOrder = handlerFactory.updateOne(Order);
