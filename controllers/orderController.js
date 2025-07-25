@@ -255,7 +255,7 @@ exports.getUserOrders = catchAsync(async (req, res, next) => {
 				currentPage: paginationInfo.currentPage,
 				accumulator: paginationInfo.accumulator,
 				nextPage: paginationInfo.nextPage
-					? `${process.env.BASE_URL}/api/v1/orders/{paginationInfo.nextPage}`
+					? `${process.env.BASE_URL}/api/v1/orders/${paginationInfo.nextPage}`
 					: null,
 				prevPage: paginationInfo.prevPage
 					? `${process.env.BASE_URL}/api/v1/orders/${paginationInfo.prevPage}`

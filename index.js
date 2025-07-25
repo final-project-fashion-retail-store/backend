@@ -71,7 +71,7 @@ app.use('/api/v1/products', productRouter);
 app.use('/api/v1/messages', messageRouter);
 app.use('/api/v1/wishlist', wishlistRouter);
 app.use('/api/v1/cart', cartRouter);
-// app.use('/api/v1/reviews', reviewRouter);
+app.use('/api/v1/reviews', reviewRouter);
 
 // Order routes (excluding webhook which is handled above)
 const orderRouter = require('./routes/orderRoutes');

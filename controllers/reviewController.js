@@ -37,8 +37,12 @@ exports.getReviews = catchAsync(async (req, res, next) => {
 				totalPages: paginationInfo.totalPages,
 				currentPage: paginationInfo.currentPage,
 				accumulator: paginationInfo.accumulator,
-				nextPage: paginationInfo.nextPage,
-				prevPage: paginationInfo.prevPage,
+				nextPage: paginationInfo.nextPage
+					? `${process.env.BASE_URL}/api/v1/reviews/${paginationInfo.nextPage}`
+					: null,
+				prevPage: paginationInfo.prevPage
+					? `${process.env.BASE_URL}/api/v1/reviews/${paginationInfo.prevPage}`
+					: null,
 			},
 		},
 	});
