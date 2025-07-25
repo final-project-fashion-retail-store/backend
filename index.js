@@ -10,6 +10,18 @@ const qs = require('qs');
 const globalErrorHandler = require('./controllers/errorController');
 const apiKeyAuth = require('./middlewares/apiKeyAuth');
 const AppError = require('./utils/appError');
+const userRouter = require('./routes/userRoutes');
+const authRouter = require('./routes/authRoutes');
+const imageRouter = require('./routes/imageRoutes');
+const addressRouter = require('./routes/addressRoutes');
+const categoryRouter = require('./routes/categoryRoutes');
+const subcategoryRouter = require('./routes/subcategoryRoutes');
+const brandRouter = require('./routes/brandRoutes');
+const productRouter = require('./routes/productRoutes');
+const messageRouter = require('./routes/messageRoutes');
+const wishlistRouter = require('./routes/wishlistRoutes');
+const cartRouter = require('./routes/cartRoutes');
+const reviewRouter = require('./routes/reviewRoutes');
 const orderController = require('./controllers/orderController');
 
 // GLOBAL MIDDLEWARES
@@ -37,19 +49,6 @@ app.post(
 	express.raw({ type: 'application/json' }),
 	orderController.stripeWebhook
 );
-
-const userRouter = require('./routes/userRoutes');
-const authRouter = require('./routes/authRoutes');
-const imageRouter = require('./routes/imageRoutes');
-const addressRouter = require('./routes/addressRoutes');
-const categoryRouter = require('./routes/categoryRoutes');
-const subcategoryRouter = require('./routes/subcategoryRoutes');
-const brandRouter = require('./routes/brandRoutes');
-const productRouter = require('./routes/productRoutes');
-const messageRouter = require('./routes/messageRoutes');
-const wishlistRouter = require('./routes/wishlistRoutes');
-const cartRouter = require('./routes/cartRoutes');
-const reviewRouter = require('./routes/reviewRoutes');
 
 // Body parser, reading data from body into req.body
 app.set('query parser', (str) => {

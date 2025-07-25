@@ -19,7 +19,7 @@ exports.updateProductInventory = async (orderItems, Product) => {
 		const productUpdates = {};
 
 		orderItems.forEach((item) => {
-			const productId = item.productId.toString();
+			const productId = item.product.toString();
 			if (!productUpdates[productId]) {
 				productUpdates[productId] = [];
 			}
