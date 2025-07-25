@@ -66,7 +66,7 @@ exports.createReview = catchAsync(async (req, res, next) => {
 		return next(new AppError('Order item not found', 404));
 	}
 
-	if (orderItem.status !== 'delivered') {
+	if (order.status !== 'delivered') {
 		return next(new AppError('You can only review delivered products', 400));
 	}
 
