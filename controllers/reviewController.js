@@ -25,7 +25,9 @@ exports.getReviews = catchAsync(async (req, res, next) => {
 	const paginationInfo = await features.paginate();
 
 	// Execute the query with population
-	const reviews = await features.query.populate('user', 'name avatar');
+	const reviews = await features.query
+		.populate('user', 'avatar')
+		.populate('product', 'variants');
 
 	res.status(200).json({
 		status: 'success',
@@ -139,7 +141,9 @@ exports.updateReview = catchAsync(async (req, res, next) => {
 	const updatedReview = await Review.findByIdAndUpdate(req.params.id, newBody, {
 		new: true,
 		runValidators: true,
-	});
+	})
+		.populate('user', 'name avatar')
+		.populate('product', 'variants');
 
 	res.status(200).json({
 		status: 'success',

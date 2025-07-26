@@ -44,10 +44,25 @@ const reviewSchema = new mongoose.Schema(
 					trim: true,
 				},
 			},
+			{ _id: false },
 		],
 	},
 	{
 		timestamps: true,
+		toJSON: {
+			virtuals: true,
+			transform: function (doc, ret) {
+				delete ret.id;
+				return ret;
+			},
+		},
+		toObject: {
+			virtuals: true,
+			transform: function (doc, ret) {
+				delete ret.id;
+				return ret;
+			},
+		},
 	}
 );
 
@@ -78,6 +93,20 @@ reviewSchema.statics.calcAverageRatings = async function (productId) {
 		});
 	}
 };
+
+reviewSchema.virtual('color').get(function () {
+	const color = this.product.variants.find(
+		(v) => v._id.toString() === this.variantId.toString()
+	).color;
+	return color;
+});
+
+reviewSchema.virtual('size').get(function () {
+	const size = this.product.variants.find(
+		(v) => v._id.toString() === this.variantId.toString()
+	).size;
+	return size;
+});
 
 reviewSchema.post('save', function () {
 	// this points to current review - this.constructor points to the model that created the document (Review)
