@@ -40,10 +40,10 @@ exports.getReviews = catchAsync(async (req, res, next) => {
 				currentPage: paginationInfo.currentPage,
 				accumulator: paginationInfo.accumulator,
 				nextPage: paginationInfo.nextPage
-					? `${process.env.BASE_URL}/api/v1/reviews/${paginationInfo.nextPage}`
+					? `${process.env.BASE_URL}/api/v1/reviews/${productId}${paginationInfo.nextPage}`
 					: null,
 				prevPage: paginationInfo.prevPage
-					? `${process.env.BASE_URL}/api/v1/reviews/${paginationInfo.prevPage}`
+					? `${process.env.BASE_URL}/api/v1/reviews/${productId}${paginationInfo.prevPage}`
 					: null,
 			},
 		},
