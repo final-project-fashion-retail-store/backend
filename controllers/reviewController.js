@@ -87,6 +87,7 @@ exports.createReview = catchAsync(async (req, res, next) => {
 	const newReview = await Review.create({
 		user: req.user._id,
 		product: req.body.productId,
+		variantId: req.body.variantId,
 		rating: req.body.rating,
 		title: req.body.title,
 		comment: req.body.comment,
@@ -124,7 +125,18 @@ exports.updateReview = catchAsync(async (req, res, next) => {
 		return next(new AppError('You can only update your own reviews', 403));
 	}
 
-	const updatedReview = await Review.findByIdAndUpdate(req.params.id, req.body, {
+	const excludeFields = [
+		'_id',
+		'user',
+		'product',
+		'variantId',
+		'createdAt',
+		'updatedAt',
+	];
+	const newBody = { ...req.body };
+	excludeFields.forEach((field) => delete newBody[field]);
+
+	const updatedReview = await Review.findByIdAndUpdate(req.params.id, newBody, {
 		new: true,
 		runValidators: true,
 	});
