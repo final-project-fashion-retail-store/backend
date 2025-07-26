@@ -96,6 +96,11 @@ exports.createReview = catchAsync(async (req, res, next) => {
 		images: req.body.images,
 	});
 
+	await newReview.populate([
+		{ path: 'user', select: 'firstName lastName avatar' },
+		{ path: 'product', select: 'variants' },
+	]);
+
 	// Update the order item to mark it as reviewed
 	orderItem.reviewed = true;
 
