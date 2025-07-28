@@ -142,10 +142,24 @@ exports.cancelOrder = catchAsync(async (req, res, next) => {
 	// Cancel payment intent if exists and order is still pending
 	if (order.paymentDetails.transactionId) {
 		try {
-			await stripe.paymentIntents.cancel(order.paymentDetails.transactionId);
-			order.paymentDetails.status = 'cancelled';
+			// Check if payment was successful (paid status means payment succeeded)
+			if (order.paymentDetails.status === 'paid') {
+				// Create a refund for successful payments
+				await stripe.refunds.create({
+					payment_intent: order.paymentDetails.transactionId,
+					reason: 'requested_by_customer',
+				});
+				order.paymentDetails.status = 'refunded';
+				console.log('Refund created for order:', order.orderNumber);
+			} else if (order.paymentDetails.status === 'pending') {
+				// Cancel payment intent if still pending
+				await stripe.paymentIntents.cancel(order.paymentDetails.transactionId);
+				order.paymentDetails.status = 'cancelled';
+				console.log('Payment intent cancelled for order:', order.orderNumber);
+			}
 		} catch (error) {
-			console.log('Error cancelling payment intent:', error.message);
+			console.log('Error processing payment cancellation/refund:', error.message);
+			// Don't return error here - still allow order cancellation even if payment operation fails
 		}
 	}
 
