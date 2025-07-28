@@ -130,12 +130,12 @@ exports.cancelOrder = catchAsync(async (req, res, next) => {
 	}
 
 	// Check if user owns this order
-	if (order.userId.toString() !== req.user.id && req.user.role !== 'admin') {
+	if (order.user.toString() !== req.user.id) {
 		return next(new AppError('You can only cancel your own orders', 403));
 	}
 
 	// Check if order can be cancelled
-	if (['delivered', 'cancelled'].includes(order.status)) {
+	if (['shipped', 'delivered', 'cancelled'].includes(order.status)) {
 		return next(new AppError('This order cannot be cancelled', 400));
 	}
 
@@ -150,7 +150,6 @@ exports.cancelOrder = catchAsync(async (req, res, next) => {
 	}
 
 	order.status = 'cancelled';
-	order.updatedAt = Date.now();
 	await order.save();
 
 	res.status(200).json({

@@ -61,7 +61,13 @@ const ProductSchema = new Schema(
 		active: { type: Boolean, default: true },
 		inStock: { type: Boolean, default: true },
 		featuredProduct: { type: Boolean, default: false },
-		averageRating: { type: Number, default: 0, min: 0, max: 5 },
+		averageRating: {
+			type: Number,
+			default: 0,
+			min: 0,
+			max: 5,
+			set: (val) => Math.round(val * 10) / 10,
+		},
 		totalReviews: { type: Number, default: 0, min: 0 },
 
 		// SEO fields
