@@ -140,7 +140,7 @@ exports.cancelOrder = catchAsync(async (req, res, next) => {
 	}
 
 	// Cancel payment intent if exists and order is still pending
-	if (order.paymentDetails.transactionId && order.status === 'pending') {
+	if (order.paymentDetails.transactionId) {
 		try {
 			await stripe.paymentIntents.cancel(order.paymentDetails.transactionId);
 			order.paymentDetails.status = 'cancelled';
