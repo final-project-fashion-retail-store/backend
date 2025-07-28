@@ -105,8 +105,8 @@ exports.googleCallback = catchAsync(async (req, res) => {
 				// Create new user
 				user = await User.create({
 					email,
-					firstName: firstName || 'User',
-					lastName: lastName || '',
+					firstName,
+					lastName: lastName || 'User',
 					googleId,
 					authProvider: 'google',
 					// emailVerified: emailVerified || false,
