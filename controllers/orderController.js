@@ -88,6 +88,8 @@ exports.createOrderFromCart = catchAsync(async (req, res, next) => {
 		status: 'pending',
 	});
 
+	await order.populate('user');
+
 	// Create payment intent if using Stripe
 	let clientSecret = null;
 	if (paymentMethod === 'stripe') {
@@ -97,6 +99,8 @@ exports.createOrderFromCart = catchAsync(async (req, res, next) => {
 			metadata: {
 				userId: userId.toString(),
 				orderNumber: order.orderNumber,
+				customerEmail: order.user.email,
+				customerName: order.user.fullName,
 			},
 			automatic_payment_methods: {
 				enabled: true,
@@ -123,14 +127,14 @@ exports.createOrderFromCart = catchAsync(async (req, res, next) => {
 exports.cancelOrder = catchAsync(async (req, res, next) => {
 	const { id } = req.params;
 
-	const order = await Order.findById(id);
+	const order = await Order.findById(id).populate('user');
 
 	if (!order) {
 		return next(new AppError('Order not found', 404));
 	}
 
 	// Check if user owns this order
-	if (order.user.toString() !== req.user.id) {
+	if (order.user.id.toString() !== req.user.id) {
 		return next(new AppError('You can only cancel your own orders', 403));
 	}
 
@@ -148,6 +152,10 @@ exports.cancelOrder = catchAsync(async (req, res, next) => {
 				await stripe.refunds.create({
 					payment_intent: order.paymentDetails.transactionId,
 					reason: 'requested_by_customer',
+					metadata: {
+						orderNumber: order.orderNumber,
+						customerEmail: order.user.email,
+					},
 				});
 				order.paymentDetails.status = 'refunded';
 				console.log('Refund created for order:', order.orderNumber);
