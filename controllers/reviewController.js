@@ -147,8 +147,8 @@ exports.updateReview = catchAsync(async (req, res, next) => {
 		new: true,
 		runValidators: true,
 	})
-		.populate('user', 'name avatar')
-		.populate('product', 'variants');
+		.populate('user', 'firstName lastName avatar')
+		.populate('product', 'colorImages variants name');
 
 	res.status(200).json({
 		status: 'success',
