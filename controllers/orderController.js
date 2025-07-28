@@ -99,8 +99,6 @@ exports.createOrderFromCart = catchAsync(async (req, res, next) => {
 			metadata: {
 				userId: userId.toString(),
 				orderNumber: order.orderNumber,
-				customerEmail: order.user.email,
-				customerName: order.user.fullName,
 			},
 			automatic_payment_methods: {
 				enabled: true,
@@ -152,10 +150,6 @@ exports.cancelOrder = catchAsync(async (req, res, next) => {
 				await stripe.refunds.create({
 					payment_intent: order.paymentDetails.transactionId,
 					reason: 'requested_by_customer',
-					metadata: {
-						orderNumber: order.orderNumber,
-						customerEmail: order.user.email,
-					},
 				});
 				order.paymentDetails.status = 'refunded';
 				console.log('Refund created for order:', order.orderNumber);

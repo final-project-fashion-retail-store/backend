@@ -109,7 +109,7 @@ exports.googleCallback = catchAsync(async (req, res) => {
 					lastName: lastName || '',
 					googleId,
 					authProvider: 'google',
-					emailVerified: emailVerified || false,
+					// emailVerified: emailVerified || false,
 					avatar: {
 						url: avatarUrl || '',
 					},
