@@ -27,7 +27,7 @@ exports.getReviews = catchAsync(async (req, res, next) => {
 	// Execute the query with population
 	const reviews = await features.query
 		.populate('user', 'firstName lastName avatar')
-		.populate('product', 'variants colorImages');
+		.populate('product', 'colorImages name');
 
 	res.status(200).json({
 		status: 'success',
