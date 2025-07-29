@@ -173,6 +173,11 @@ exports.cancelOrder = catchAsync(async (req, res, next) => {
 
 	order.status = 'cancelled';
 	await order.save();
+	await order.populate([
+		{ path: 'user' },
+		{ path: 'shippingAddress' },
+		{ path: 'items.product' },
+	]);
 
 	// Create order history entry
 	await orderHistory.create({
