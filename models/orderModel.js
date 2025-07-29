@@ -164,6 +164,12 @@ orderSchema.index({ userId: 1, createdAt: -1 });
 orderSchema.index({ status: 1 });
 // orderSchema.index({ 'paymentDetails.transactionId': 1 });
 
+orderSchema.virtual('orderHistories', {
+	ref: 'OrderHistory',
+	foreignField: 'order',
+	localField: '_id',
+});
+
 orderSchema.virtual('reviewExpired').get(function () {
 	if (this.reviewExpireDate === null) return false;
 	if (this.reviewExpireDate === undefined) return undefined;

@@ -185,6 +185,8 @@ exports.cancelOrder = catchAsync(async (req, res, next) => {
 		status: 'cancelled',
 	});
 
+	await order.populate('orderHistories', 'status createdAt');
+
 	res.status(200).json({
 		status: 'success',
 		data: {
@@ -279,7 +281,8 @@ exports.getUserOrders = catchAsync(async (req, res, next) => {
 	// Execute the query with population
 	const orders = await features.query
 		.populate('items.product', 'name variants colorImages')
-		.populate('shippingAddress');
+		.populate('shippingAddress')
+		.populate('orderHistories');
 
 	res.status(200).json({
 		status: 'success',
