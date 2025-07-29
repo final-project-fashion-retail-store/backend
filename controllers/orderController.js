@@ -4,6 +4,7 @@ const AppError = require('../utils/appError');
 const Order = require('../models/orderModel');
 const Cart = require('../models/cartModel');
 const Product = require('../models/productModel');
+const orderHistory = require('../models/orderHistoryModel');
 const handlerFactory = require('./handlerFactory');
 const apiFeatures = require('../utils/apiFeatures');
 const {
@@ -87,6 +88,11 @@ exports.createOrderFromCart = catchAsync(async (req, res, next) => {
 		totalAmount: totals.totalAmount,
 		status: 'pending',
 	});
+	// Create order history entry
+	await orderHistory.create({
+		order: order._id,
+		status: 'pending',
+	});
 
 	await order.populate('user');
 
@@ -168,6 +174,12 @@ exports.cancelOrder = catchAsync(async (req, res, next) => {
 	order.status = 'cancelled';
 	await order.save();
 
+	// Create order history entry
+	await orderHistory.create({
+		order: order._id,
+		status: 'cancelled',
+	});
+
 	res.status(200).json({
 		status: 'success',
 		data: {
@@ -210,6 +222,12 @@ exports.stripeWebhook = catchAsync(async (req, res, next) => {
 				order.status = 'processing';
 				order.paymentDetails.status = 'paid';
 				await order.save();
+
+				// Create order history entry
+				await orderHistory.create({
+					order: order._id,
+					status: 'processing',
+				});
 
 				// Clear user's cart after successful payment
 				await Cart.findOneAndUpdate({ user: order.user }, { $set: { items: [] } });
@@ -285,4 +303,21 @@ exports.getAllOrders = handlerFactory.getAll(Order, 'orders', [
 	{ path: 'shippingAddress' },
 	{ path: 'items.product' },
 ]);
-exports.updateOrder = handlerFactory.updateOne(Order);
+exports.updateOrder = catchAsync(async (req, res, next) => {
+	const updatedOrder = await Order.findByIdAndUpdate(req.params.id, req.body, {
+		new: true,
+		runValidators: true,
+		updatedBy: req.user._id,
+	});
+
+	if (!updatedOrder) {
+		return next(new AppError('Order not found', 404));
+	}
+
+	res.status(200).json({
+		status: 'success',
+		data: {
+			order: updatedOrder,
+		},
+	});
+});

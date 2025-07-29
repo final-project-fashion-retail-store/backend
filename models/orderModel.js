@@ -1,5 +1,6 @@
 // models/orderModel.js
 const mongoose = require('mongoose');
+const orderHistory = require('./orderHistoryModel');
 
 const orderItemSchema = new mongoose.Schema(
 	{
@@ -186,20 +187,45 @@ orderSchema.pre('save', function (next) {
 orderSchema.pre('findOneAndUpdate', async function () {
 	const update = this.getUpdate();
 
-	// Check if status is being updated to 'delivered'
-	if (
-		update.status === 'delivered' ||
-		(update.$set && update.$set.status === 'delivered')
-	) {
-		const reviewExpireDate = new Date();
-		reviewExpireDate.setDate(reviewExpireDate.getDate() + 15);
+	// Check if status is being updated
+	const newStatus = update.status || (update.$set && update.$set.status);
 
-		// Set the reviewExpireDate at the order level
-		if (update.$set) {
-			update.$set.reviewExpireDate = reviewExpireDate;
-		} else {
-			update.reviewExpireDate = reviewExpireDate;
+	if (newStatus) {
+		// Get the current document to check if status actually changed
+		const currentOrder = await this.model.findOne(this.getQuery());
+
+		// Only proceed if status is actually changing
+		if (currentOrder && currentOrder.status !== newStatus) {
+			// Set reviewExpireDate if status is being updated to 'delivered'
+			if (newStatus === 'delivered') {
+				const reviewExpireDate = new Date();
+				reviewExpireDate.setDate(reviewExpireDate.getDate() + 15);
+
+				if (update.$set) {
+					update.$set.reviewExpireDate = reviewExpireDate;
+				} else {
+					update.reviewExpireDate = reviewExpireDate;
+				}
+			}
+
+			// Store data for post middleware to create history entry
+			this._statusChanged = {
+				orderId: currentOrder._id,
+				newStatus: newStatus,
+				updatedBy: this.options.updatedBy, // We'll pass this from controller
+			};
 		}
+	}
+});
+
+orderSchema.post('findOneAndUpdate', async function (doc) {
+	// Create order history entry if status was changed
+	if (this._statusChanged && doc) {
+		await orderHistory.create({
+			order: this._statusChanged.orderId,
+			status: this._statusChanged.newStatus,
+			updatedBy: this._statusChanged.updatedBy,
+		});
 	}
 });
 
