@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+ backend:
+  build: .
+  container_name: purplebee-backend
+  ports:
+   - '4000:4000'
+  environment:
+   - NODE_ENV=production
+   - PORT=4000
+   - MONGO_URI=${MONGO_URI}
+   - REDIS_HOST=${REDIS_HOST}
+   - REDIS_PORT=${REDIS_PORT}
+   - REDIS_USERNAME=${REDIS_USERNAME}
+   - REDIS_PASSWORD=${REDIS_PASSWORD}
+  env_file:
+   - .env

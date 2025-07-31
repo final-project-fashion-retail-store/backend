@@ -10,19 +10,19 @@ module.exports = class Email {
 		this.to = user.email;
 		this.firstName = user.firstName;
 		this.url = url;
-		this.from = '"PurpleBee Fashion" <noreply@purplebeefashion.com>';
+		this.from = '"Purplebee" <noreply@purplebee.store>';
 	}
 
 	newTransport() {
 		if (process.env.NODE_ENV === 'production') {
-			// Sendgrid
+			// SES
 			return nodemailer.createTransport({
-				host: 'smtp.sendgrid.net',
+				host: 'smtp.resend.com',
 				port: 587,
 				secure: false,
 				auth: {
-					user: process.env.SENDGRID_USERNAME,
-					pass: process.env.SENDGRID_API_KEY,
+					user: process.env.SMTP_USERNAME,
+					pass: process.env.SMTP_PASSWORD,
 				},
 			});
 		}
