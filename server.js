@@ -30,10 +30,7 @@ connectRedis();
 // );
 
 // connect to db
-const db = process.env.DATABASE.replace(
-	'<db_password>',
-	process.env.DB_PASSWORD
-);
+const db = process.env.MONGO_URI;
 const connect = async () => {
 	try {
 		await mongoose.connect(db);
