@@ -9,10 +9,24 @@ services:
   environment:
    - NODE_ENV=production
    - PORT=4000
-   - MONGO_URI=${MONGO_URI}
-   - REDIS_HOST=${REDIS_HOST}
-   - REDIS_PORT=${REDIS_PORT}
-   - REDIS_USERNAME=${REDIS_USERNAME}
-   - REDIS_PASSWORD=${REDIS_PASSWORD}
+   - 'MONGO_URI=${MONGO_URI}'
+   - 'REDIS_HOST=${REDIS_HOST}'
+   - 'REDIS_PORT=${REDIS_PORT}'
+   - 'REDIS_USERNAME=${REDIS_USERNAME}'
+   - 'REDIS_PASSWORD=${REDIS_PASSWORD}'
   env_file:
    - .env
+  volumes:
+   - app_data:/app/data
+   - logs:/app/logs
+  networks:
+   - app_network
+  restart: unless-stopped
+
+volumes:
+ app_data:
+ logs:
+
+networks:
+ app_network:
+  driver: bridge
