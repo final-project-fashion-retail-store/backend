@@ -114,13 +114,10 @@ const orderDeliveredHtml = (firstName, email, order) => {
 								}</strong></p>
         <p>Delivered on ${order.orderHistories[
 									order.orderHistories.length - 1
-								].timestamp.toLocaleString('en-US', {
-									year: 'numeric',
-									month: 'long',
-									day: 'numeric',
-									hour: '2-digit',
-									minute: '2-digit',
-								})}</p>
+								].timestamp
+									.toISOString()
+									.replace('T', ' at ')
+									.slice(0, 16)}</p>
       </div>
       
       <p>Great news! Your order has been successfully delivered. We hope you love your new PurpleBee Fashion items!</p>
@@ -130,13 +127,10 @@ const orderDeliveredHtml = (firstName, email, order) => {
         <p><strong>Order Number:</strong> #${order.orderNumber}</p>
         <p><strong>Delivered On:</strong> ${order.orderHistories[
 									order.orderHistories.length - 1
-								].timestamp.toLocaleString('en-US', {
-									year: 'numeric',
-									month: 'long',
-									day: 'numeric',
-									hour: '2-digit',
-									minute: '2-digit',
-								})}</p>
+								].timestamp
+									.toISOString()
+									.replace('T', ' at ')
+									.slice(0, 16)}</p>
         
         <table class="delivery-table">
           <thead>

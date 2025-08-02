@@ -9,30 +9,20 @@ const orderDeliveredText = (firstName, email, order) => {
 
 ✓ Successfully Delivered
 Order #${order.orderNumber}
-Delivered on ${order.orderHistories[
-		order.orderHistories.length - 1
-	].timestamp.toLocaleString('en-US', {
-		year: 'numeric',
-		month: 'long',
-		day: 'numeric',
-		hour: '2-digit',
-		minute: '2-digit',
-	})}
+Delivered on ${order.orderHistories[order.orderHistories.length - 1].timestamp
+		.toISOString()
+		.replace('T', ' at ')
+		.slice(0, 16)}
 
 Great news! Your order has been successfully delivered. We hope you love your new PurpleBee Fashion items!
 
 DELIVERY DETAILS
 Order Number: #${order.orderNumber}
 Tracking Number: ${order.trackingNumber}
-Delivered On: ${order.orderHistories[
-		order.orderHistories.length - 1
-	].timestamp.toLocaleString('en-US', {
-		year: 'numeric',
-		month: 'long',
-		day: 'numeric',
-		hour: '2-digit',
-		minute: '2-digit',
-	})}
+Delivered On: ${order.orderHistories[order.orderHistories.length - 1].timestamp
+		.toISOString()
+		.replace('T', ' at ')
+		.slice(0, 16)}
 
 ITEMS DELIVERED:
 ${itemsText}
