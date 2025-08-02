@@ -40,23 +40,25 @@ module.exports = class Email {
 	}
 
 	// Send the actual email
-	async send(mailType, subject, data = {}) {
+	async send(mailType, subject, ...args) {
 		let html, text;
 
-		switch (mailType) {
-			case 'welcome':
-				({ html, text } = this.getWelcomeContent());
-				break;
-			case 'passwordReset':
-				({ html, text } = this.getPasswordResetContent(data.passwordResetExpires));
-				break;
-			case 'orderPlaced':
-				({ html, text } = this.getOrderPlacedContent(data.order));
-				break;
-			default:
-				throw new Error(`Unknown mail type: ${mailType}`);
+		if (mailType === 'welcome') {
+			html = welcomeHtml(this.firstName, this.to);
+			text = welcomeText(this.firstName, this.to);
+		} else if (mailType === 'passwordReset') {
+			const passwordExpireTime = args[0].toLocaleTimeString('en-US', {
+				hour: '2-digit',
+				minute: '2-digit',
+			});
+			html = passwordResetHtml(this.firstName, this.url, passwordExpireTime);
+			text = passwordResetText(this.firstName, this.url, passwordExpireTime);
+		} else if (mailType === 'orderPlaced') {
+			html = orderPlacedHtml(this.firstName, this.email, args[0]);
+			text = orderPlacedText(this.firstName, this.email, args[0]);
 		}
 
+		// Define the email options
 		const mailOptions = {
 			from: this.from,
 			to: this.to,
@@ -65,32 +67,8 @@ module.exports = class Email {
 			text,
 		};
 
+		// Create a transport and send email
 		await this.newTransport().sendMail(mailOptions);
-	}
-
-	getWelcomeContent() {
-		return {
-			html: welcomeHtml(this.firstName, this.to),
-			text: welcomeText(this.firstName, this.to),
-		};
-	}
-
-	getPasswordResetContent(passwordResetExpires) {
-		const passwordExpireTime = passwordResetExpires.toLocaleTimeString('en-US', {
-			hour: '2-digit',
-			minute: '2-digit',
-		});
-		return {
-			html: passwordResetHtml(this.firstName, this.url, passwordExpireTime),
-			text: passwordResetText(this.firstName, this.url, passwordExpireTime),
-		};
-	}
-
-	getOrderPlacedContent(order) {
-		return {
-			html: orderPlacedHtml(this.firstName, this.email, order),
-			text: orderPlacedText(this.firstName, this.email, order),
-		};
 	}
 
 	async sendWelcome() {
