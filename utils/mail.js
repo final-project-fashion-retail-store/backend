@@ -20,8 +20,8 @@ module.exports = class Email {
 			// SES
 			return nodemailer.createTransport({
 				host: 'smtp.resend.com',
-				port: 587,
-				secure: false,
+				port: process.env.NODE_ENV === 'production' ? 465 : 587,
+				secure: process.env.NODE_ENV === 'production',
 				auth: {
 					user: process.env.SMTP_USERNAME,
 					pass: process.env.SMTP_PASSWORD,
