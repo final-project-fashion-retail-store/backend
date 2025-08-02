@@ -267,7 +267,7 @@ exports.signup = catchAsync(async (req, res, next) => {
 
 	// Send welcome email
 	const url = `${req.protocol}://${req.get('host')}`;
-	await new Email(newUser, url).getWelcomeContent();
+	await new Email(newUser, url).sendWelcome();
 
 	createSendToken(newUser, 201, res, next);
 });
@@ -499,9 +499,7 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
 	const resetURL = `${frontendURL}/reset-password/${resetToken}`;
 
 	try {
-		await new Email(user, resetURL).getPasswordResetContent(
-			user.passwordResetExpires
-		);
+		await new Email(user, resetURL).sendPasswordReset(user.passwordResetExpires);
 
 		res.status(200).json({
 			status: 'success',

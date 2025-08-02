@@ -92,4 +92,20 @@ module.exports = class Email {
 			text: orderPlacedText(this.firstName, this.email, order),
 		};
 	}
+
+	async sendWelcome() {
+		await this.send('welcome', 'Welcome to PurpleBee Fashion! 💜');
+	}
+
+	async sendPasswordReset(passwordResetExpires) {
+		await this.send(
+			'passwordReset',
+			'Reset Your PurpleBee Fashion Password',
+			passwordResetExpires
+		);
+	}
+
+	async sendOrderPlaced(order) {
+		await this.send('orderPlaced', 'Your Order Has Been Placed!', order);
+	}
 };
