@@ -1,12 +1,5 @@
-const orderDeliveredHtml = (
-	firstName,
-	email,
-	orderNumber,
-	deliveryDate,
-	trackingNumber,
-	orderItems
-) => {
-	const itemsHtml = orderItems
+const orderDeliveredHtml = (firstName, email, order) => {
+	const itemsHtml = order.items
 		.map(
 			(item) =>
 				`<tr>
@@ -55,6 +48,7 @@ const orderDeliveredHtml = (
     .button {
       display: inline-block;
       background-color: #8a2be2;
+      text-color: white;
       color: white;
       text-decoration: none;
       padding: 10px 20px;
@@ -115,17 +109,34 @@ const orderDeliveredHtml = (
       
       <div class="highlight-box">
         <h2 style="margin-top: 0; color: #4caf50;">✓ Successfully Delivered</h2>
-        <p style="font-size: 18px; margin: 10px 0;"><strong>Order #${orderNumber}</strong></p>
-        <p>Delivered on ${deliveryDate}</p>
+        <p style="font-size: 18px; margin: 10px 0;"><strong>Order #${
+									order.orderNumber
+								}</strong></p>
+        <p>Delivered on ${order.orderHistories[
+									order.orderHistories.length - 1
+								].timestamp.toLocaleString('en-US', {
+									year: 'numeric',
+									month: 'long',
+									day: 'numeric',
+									hour: '2-digit',
+									minute: '2-digit',
+								})}</p>
       </div>
       
       <p>Great news! Your order has been successfully delivered. We hope you love your new PurpleBee Fashion items!</p>
       
       <div class="delivery-details">
         <h3>Delivery Details</h3>
-        <p><strong>Order Number:</strong> #${orderNumber}</p>
-        <p><strong>Tracking Number:</strong> ${trackingNumber}</p>
-        <p><strong>Delivered On:</strong> ${deliveryDate}</p>
+        <p><strong>Order Number:</strong> #${order.orderNumber}</p>
+        <p><strong>Delivered On:</strong> ${order.orderHistories[
+									order.orderHistories.length - 1
+								].timestamp.toLocaleString('en-US', {
+									year: 'numeric',
+									month: 'long',
+									day: 'numeric',
+									hour: '2-digit',
+									minute: '2-digit',
+								})}</p>
         
         <table class="delivery-table">
           <thead>
@@ -144,7 +155,7 @@ const orderDeliveredHtml = (
         <h3 style="margin-top: 0;">⭐ Love Your Purchase?</h3>
         <p>We'd love to hear about your experience! Your review helps other fashion lovers discover great pieces and helps us continue to improve.</p>
         <div style="text-align: center;">
-          <a href="https://www.purplebee.store/order" class="button">Write a Review</a>
+          <a href="https://purplebee.store/order" class="button">Write a Review</a>
         </div>
       </div>
       
@@ -157,7 +168,7 @@ const orderDeliveredHtml = (
       </ul>
       
       <div style="text-align: center; margin: 30px 0;">
-        <a href="https://www.purplebee.store/order" class="button">View Order History</a>
+        <a href="https://purplebee.store/order" class="button">View Order History</a>
       </div>
 
       <p>If you have any questions about your delivered order or need assistance, our customer service team is here to help at <a href="mailto:support@purplebee.store">support@purplebee.store</a>.</p>
@@ -165,7 +176,7 @@ const orderDeliveredHtml = (
       <p><strong>Keep shopping!</strong> Check out our latest arrivals and discover your next favorite piece.</p>
       
       <div style="text-align: center;">
-        <a href="https://www.purplebee.store" class="button">Shop New Arrivals</a>
+        <a href="https://purplebee.store" class="button">Shop New Arrivals</a>
       </div>
       
       <p>Thank you for choosing PurpleBee Fashion. We can't wait to style you again!</p>
@@ -182,11 +193,11 @@ const orderDeliveredHtml = (
     </div>
     <div class="footer">
       <p>&copy; ${new Date().getFullYear()} PurpleBee Fashion. All rights reserved.</p>
-      <p>You're receiving this email because you placed an order at <a href="https://www.purplebee.store">purplebee.store</a></p>
+      <p>You're receiving this email because you placed an order at <a href="https://purplebee.store">purplebee.store</a></p>
       <p>
-        <a href="https://www.purplebee.store/preferences">Email Preferences</a> |
-        <a href="https://www.purplebee.store/privacy">Privacy Policy</a> |
-        <a href="https://www.purplebee.store/unsubscribe?email=${email}">Unsubscribe</a>
+        <a href="https://purplebee.store/preferences">Email Preferences</a> |
+        <a href="https://purplebee.store/privacy">Privacy Policy</a> |
+        <a href="https://purplebee.store/unsubscribe?email=${email}">Unsubscribe</a>
       </p>
     </div>
   </div>

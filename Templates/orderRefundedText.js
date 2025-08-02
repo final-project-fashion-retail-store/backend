@@ -32,7 +32,7 @@ What happens next?
 
 We value your feedback and would love to hear about your experience. Your input helps us improve our products and services.
 
-Continue shopping: https://www.purplebee.store
+Continue shopping: https://purplebee.store
 
 If you have any questions about this refund or need further assistance, please contact our customer service team at support@purplebee.store and reference order #${
 		order.orderNumber
@@ -50,9 +50,9 @@ Pinterest: https://www.pinterest.com/purplebeefashion
 
 © ${new Date().getFullYear()} PurpleBee Fashion. All rights reserved.
 You're receiving this email because you had a transaction with purplebee.store
-Email Preferences: https://www.purplebee.store/preferences
-Privacy Policy: https://www.purplebee.store/privacy
-Unsubscribe: https://www.purplebee.store/unsubscribe?email=${email}`;
+Email Preferences: https://purplebee.store/preferences
+Privacy Policy: https://purplebee.store/privacy
+Unsubscribe: https://purplebee.store/unsubscribe?email=${email}`;
 };
 
 module.exports = orderRefundedText;

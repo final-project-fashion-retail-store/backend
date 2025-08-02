@@ -11,7 +11,7 @@ What you can do now:
 - Get personalized style recommendations
 - Enjoy member-only discounts and early access to sales
 
-Visit our website to start shopping: https://www.purplebee.store
+Visit our website to start shopping: https://purplebee.store
 
 If you have any questions or need assistance, our customer service team is always ready to help at support@purplebee.store.
 
@@ -27,9 +27,9 @@ Pinterest: https://www.pinterest.com/purplebeefashion
 
 © ${new Date().getFullYear()} PurpleBee Fashion. All rights reserved.
 You're receiving this email because you signed up at purplebee.store
-Email Preferences: https://www.purplebee.store/preferences
-Privacy Policy: https://www.purplebee.store/privacy
-Unsubscribe: https://www.purplebee.store/unsubscribe?email=${email}`;
+Email Preferences: https://purplebee.store/preferences
+Privacy Policy: https://purplebee.store/privacy
+Unsubscribe: https://purplebee.store/unsubscribe?email=${email}`;
 };
 
 module.exports = welcomeText;

@@ -56,6 +56,7 @@ const orderRefundedHtml = (firstName, email, order) => {
     .button {
       display: inline-block;
       background-color: #8a2be2;
+      text-color: white;
       color: white;
       text-decoration: none;
       padding: 10px 20px;
@@ -154,7 +155,7 @@ const orderRefundedHtml = (firstName, email, order) => {
       <p>We value your feedback and would love to hear about your experience. Your input helps us improve our products and services.</p>
       
       <div style="text-align: center;">
-        <a href="https://www.purplebee.store" class="button">Continue Shopping</a>
+        <a href="https://purplebee.store" class="button">Continue Shopping</a>
       </div>
 
       <p>If you have any questions about this refund or need further assistance, please contact our customer service team at <a href="mailto:support@purplebee.store">support@purplebee.store</a> and reference order #${
@@ -175,11 +176,11 @@ const orderRefundedHtml = (firstName, email, order) => {
     </div>
     <div class="footer">
       <p>&copy; ${new Date().getFullYear()} PurpleBee Fashion. All rights reserved.</p>
-      <p>You're receiving this email because you had a transaction with <a href="https://www.purplebee.store">purplebee.store</a></p>
+      <p>You're receiving this email because you had a transaction with <a href="https://purplebee.store">purplebee.store</a></p>
       <p>
-        <a href="https://www.purplebee.store/preferences">Email Preferences</a> |
-        <a href="https://www.purplebee.store/privacy">Privacy Policy</a> |
-        <a href="https://www.purplebee.store/unsubscribe?email=${email}">Unsubscribe</a>
+        <a href="https://purplebee.store/preferences">Email Preferences</a> |
+        <a href="https://purplebee.store/privacy">Privacy Policy</a> |
+        <a href="https://purplebee.store/unsubscribe?email=${email}">Unsubscribe</a>
       </p>
     </div>
   </div>

@@ -321,15 +321,27 @@ exports.getAllOrders = handlerFactory.getAll(Order, 'orders', [
 	{ path: 'shippingAddress' },
 	{ path: 'items.product' },
 ]);
+
+// only update order status
 exports.updateOrder = catchAsync(async (req, res, next) => {
 	const updatedOrder = await Order.findByIdAndUpdate(req.params.id, req.body, {
 		new: true,
 		runValidators: true,
 		updatedBy: req.user._id,
-	});
+	})
+		.populate('orderHistories')
+		.populate('user');
 
 	if (!updatedOrder) {
 		return next(new AppError('Order not found', 404));
+	}
+
+	// send mail
+	if (req.body.status === 'delivered') {
+		await new Email(
+			updatedOrder.user,
+			process.env.FRONTEND_URL
+		).sendOrderDelivered(updatedOrder);
 	}
 
 	res.status(200).json({

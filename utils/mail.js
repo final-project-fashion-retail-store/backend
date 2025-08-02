@@ -8,6 +8,8 @@ const orderPlacedHtml = require('../Templates/orderPlacedHtml');
 const orderPlacedText = require('../Templates/orderPlacedText');
 const orderRefundedHtml = require('../Templates/orderRefundedHtml');
 const orderRefundedText = require('../Templates/orderRefundedText');
+const orderDeliveredHtml = require('../Templates/orderDeliveredHtml');
+const orderDeliveredText = require('../Templates/orderDeliveredText');
 
 module.exports = class Email {
 	constructor(user, url) {
@@ -60,6 +62,9 @@ module.exports = class Email {
 		} else if (mailType === 'orderRefunded') {
 			html = orderRefundedHtml(this.firstName, this.email, args[0]);
 			text = orderRefundedText(this.firstName, this.email, args[0]);
+		} else if (mailType === 'orderDelivered') {
+			html = orderDeliveredHtml(this.firstName, this.email, args[0]);
+			text = orderDeliveredText(this.firstName, this.email, args[0]);
 		}
 
 		// Define the email options
@@ -93,5 +98,9 @@ module.exports = class Email {
 
 	async sendOrderRefunded(order) {
 		await this.send('orderRefunded', 'Your Order Has Been Refunded!', order);
+	}
+
+	async sendOrderDelivered(order) {
+		await this.send('orderDelivered', 'Your Order Has Been Delivered!', order);
 	}
 };
