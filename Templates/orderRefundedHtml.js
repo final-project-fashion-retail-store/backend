@@ -1,12 +1,5 @@
-const orderRefundedHtml = (
-	firstName,
-	email,
-	orderNumber,
-	refundAmount,
-	refundItems,
-	refundReason
-) => {
-	const itemsHtml = refundItems
+const orderRefundedHtml = (firstName, email, order) => {
+	const itemsHtml = order.items
 		.map(
 			(item) =>
 				`<tr>
@@ -121,13 +114,13 @@ const orderRefundedHtml = (
       
       <div class="highlight-box">
         <h3 style="margin-top: 0; color: #4caf50;">✓ Refund Confirmed</h3>
-        <p><strong>Refund Amount:</strong> $${refundAmount.toFixed(2)}</p>
+        <p><strong>Refund Amount:</strong> $${order.totalAmount.toFixed(2)}</p>
         <p><strong>Processing Time:</strong> 3-5 business days to appear in your account</p>
       </div>
       
       <div class="refund-details">
         <h3>Refund Details</h3>
-        <p><strong>Original Order:</strong> #${orderNumber}</p>
+        <p><strong>Original Order:</strong> #${order.orderNumber}</p>
         <p><strong>Refund Date:</strong> ${new Date().toLocaleDateString()}</p>
         
         <table class="refund-table">
@@ -143,7 +136,7 @@ const orderRefundedHtml = (
             ${itemsHtml}
             <tr class="total-row">
               <td colspan="3" style="padding: 10px; text-align: right;">Total Refund:</td>
-              <td style="padding: 10px; text-align: right;">$${refundAmount.toFixed(
+              <td style="padding: 10px; text-align: right;">$${order.totalAmount.toFixed(
 															2
 														)}</td>
             </tr>

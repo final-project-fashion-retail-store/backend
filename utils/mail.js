@@ -6,6 +6,8 @@ const passwordResetHtml = require('../Templates/forgotPasswordHtml');
 const passwordResetText = require('../Templates/forgotPasswordText');
 const orderPlacedHtml = require('../Templates/orderPlacedHtml');
 const orderPlacedText = require('../Templates/orderPlacedText');
+const orderRefundedHtml = require('../Templates/orderRefundedHtml');
+const orderRefundedText = require('../Templates/orderRefundedText');
 
 module.exports = class Email {
 	constructor(user, url) {
@@ -55,6 +57,9 @@ module.exports = class Email {
 		} else if (mailType === 'orderPlaced') {
 			html = orderPlacedHtml(this.firstName, this.email, args[0]);
 			text = orderPlacedText(this.firstName, this.email, args[0]);
+		} else if (mailType === 'orderRefunded') {
+			html = orderRefundedHtml(this.firstName, this.email, args[0]);
+			text = orderRefundedText(this.firstName, this.email, args[0]);
 		}
 
 		// Define the email options
@@ -84,5 +89,9 @@ module.exports = class Email {
 
 	async sendOrderPlaced(order) {
 		await this.send('orderPlaced', 'Your Order Has Been Placed!', order);
+	}
+
+	async sendOrderRefunded(order) {
+		await this.send('orderRefunded', 'Your Order Has Been Refunded!', order);
 	}
 };

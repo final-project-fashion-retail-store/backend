@@ -166,6 +166,8 @@ exports.cancelOrder = catchAsync(async (req, res, next) => {
 				order.paymentDetails.status = 'cancelled';
 				console.log('Payment intent cancelled for order:', order.orderNumber);
 			}
+
+			await new Email(req.user, process.env.FRONTEND_URL).sendOrderRefunded(order);
 		} catch (error) {
 			console.log('Error processing payment cancellation/refund:', error.message);
 			// Don't return error here - still allow order cancellation even if payment operation fails
@@ -239,15 +241,15 @@ exports.stripeWebhook = catchAsync(async (req, res, next) => {
 					status: 'processing',
 				});
 
-				// Send order confirmation email
-				await new Email(order.user, process.env.FRONTEND_URL).sendOrderPlaced(
-					order
-				);
-
 				// Clear user's cart after successful payment
 				await Cart.findOneAndUpdate({ user: order.user }, { $set: { items: [] } });
 
 				console.log('Order confirmed:', order.orderNumber);
+
+				// Send order confirmation email
+				await new Email(order.user, process.env.FRONTEND_URL).sendOrderPlaced(
+					order
+				);
 			}
 			break;
 

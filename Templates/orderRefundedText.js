@@ -1,12 +1,5 @@
-const orderRefundedText = (
-	firstName,
-	email,
-	orderNumber,
-	refundAmount,
-	refundItems,
-	refundReason
-) => {
-	const itemsText = refundItems
+const orderRefundedText = (firstName, email, order) => {
+	const itemsText = order.items
 		.map(
 			(item) =>
 				`${item.name} - $${item.price} x ${item.quantity} = $${(
@@ -20,18 +13,17 @@ const orderRefundedText = (
 We've successfully processed your refund request. We're sorry to see this order didn't work out as expected.
 
 ✓ REFUND CONFIRMED
-Refund Amount: $${refundAmount.toFixed(2)}
+Refund Amount: $${order.totalAmount.toFixed(2)}
 Processing Time: 3-5 business days to appear in your account
 
 REFUND DETAILS
-Original Order: #${orderNumber}
+Original Order: #${order.orderNumber}
 Refund Date: ${new Date().toLocaleDateString()}
-Reason: ${refundReason}
 
 REFUNDED ITEMS:
 ${itemsText}
 
-Total Refund: $${refundAmount.toFixed(2)}
+Total Refund: $${order.totalAmount.toFixed(2)}
 
 What happens next?
 - Your refund will be processed back to your original payment method
