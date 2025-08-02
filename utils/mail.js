@@ -4,6 +4,8 @@ const welcomeHtml = require('../Templates/welcomeHtml');
 const welcomeText = require('../Templates/welcomeText');
 const passwordResetHtml = require('../Templates/forgotPasswordHtml');
 const passwordResetText = require('../Templates/forgotPasswordText');
+const orderPlacedHtml = require('../Templates/orderPlacedHtml');
+const orderPlacedText = require('../Templates/orderPlacedText');
 
 module.exports = class Email {
 	constructor(user, url) {
