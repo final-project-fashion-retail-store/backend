@@ -157,7 +157,9 @@ const orderRefundedHtml = (firstName, email, order) => {
         <a href="https://www.purplebee.store" class="button">Continue Shopping</a>
       </div>
 
-      <p>If you have any questions about this refund or need further assistance, please contact our customer service team at <a href="mailto:support@purplebee.store">support@purplebee.store</a> and reference order #${orderNumber}.</p>
+      <p>If you have any questions about this refund or need further assistance, please contact our customer service team at <a href="mailto:support@purplebee.store">support@purplebee.store</a> and reference order #${
+							order.orderNumber
+						}.</p>
 
       <p>Thank you for giving PurpleBee Fashion a try. We hope to serve you better in the future!</p>
       

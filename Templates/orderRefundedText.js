@@ -34,7 +34,9 @@ We value your feedback and would love to hear about your experience. Your input 
 
 Continue shopping: https://www.purplebee.store
 
-If you have any questions about this refund or need further assistance, please contact our customer service team at support@purplebee.store and reference order #${orderNumber}.
+If you have any questions about this refund or need further assistance, please contact our customer service team at support@purplebee.store and reference order #${
+		order.orderNumber
+	}.
 
 Thank you for giving PurpleBee Fashion a try. We hope to serve you better in the future!
 
