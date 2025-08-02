@@ -240,7 +240,7 @@ exports.stripeWebhook = catchAsync(async (req, res, next) => {
 				});
 
 				// Send order confirmation email
-				await new Email(order.user, process.env.FRONTEND_URL).sendOrderPlaced(
+				await new Email(order.user, process.env.FRONTEND_URL).getOrderPlacedContent(
 					order
 				);
 
