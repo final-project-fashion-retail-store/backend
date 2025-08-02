@@ -80,9 +80,9 @@ const forgotPasswordHtml = (firstName, resetUrl, expiryTime) => {
       <p style="word-break: break-all; font-size: 14px;">${resetUrl}</p>
       
       <p>After resetting your password, you'll be able to log in with your new password.</p>
-      
-      <p>If you didn't request a password reset, please contact our support team immediately at <a href="mailto:support@purplebeefashion.com">support@purplebeefashion.com</a>.</p>
-      
+
+      <p>If you didn't request a password reset, please contact our support team immediately at <a href="mailto:support@purplebee.store">support@purplebee.store</a>.</p>
+
       <p>Thank you for shopping with PurpleBee Fashion!</p>
       
       <p>Best regards,<br>
@@ -92,8 +92,8 @@ const forgotPasswordHtml = (firstName, resetUrl, expiryTime) => {
       <p>&copy; ${new Date().getFullYear()} PurpleBee Fashion. All rights reserved.</p>
       <p>This is an automated message, please do not reply to this email.</p>
       <p>
-        <a href="https://www.purplebeefashion.com/privacy">Privacy Policy</a> |
-        <a href="https://www.purplebeefashion.com/contact">Contact Us</a>
+        <a href="https://www.purplebee.store/privacy">Privacy Policy</a> |
+        <a href="https://www.purplebee.store/contact">Contact Us</a>
       </p>
     </div>
   </div>

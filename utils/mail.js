@@ -39,7 +39,7 @@ module.exports = class Email {
 
 	// Send the actual email
 	async send(mailType, subject, ...args) {
-		const [passwordResetExpires] = args;
+		const [passwordResetExpires, order] = args;
 		let html, text;
 
 		if (mailType === 'welcome') {
@@ -52,6 +52,9 @@ module.exports = class Email {
 			});
 			html = passwordResetHtml(this.firstName, this.url, passwordExpireTime);
 			text = passwordResetText(this.firstName, this.url, passwordExpireTime);
+		} else if (mailType === 'orderPlaced') {
+			html = orderPlacedHtml(this.firstName, this.email, order);
+			text = orderPlacedText(this.firstName, this.email, order);
 		}
 
 		// Define the email options
@@ -77,5 +80,9 @@ module.exports = class Email {
 			'Reset Your PurpleBee Fashion Password',
 			passwordResetExpires
 		);
+	}
+
+	async sendOrderPlaced(order) {
+		await this.send('orderPlaced', 'Your Order Has Been Placed!', order);
 	}
 };

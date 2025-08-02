@@ -11,11 +11,9 @@ What you can do now:
 - Get personalized style recommendations
 - Enjoy member-only discounts and early access to sales
 
-As a welcome gift, use code WELCOME15 at checkout to receive 15% off your first purchase.
+Visit our website to start shopping: https://www.purplebee.store
 
-Visit our website to start shopping: https://www.purplebeefashion.com/shop
-
-If you have any questions or need assistance, our customer service team is always ready to help at support@purplebeefashion.com.
+If you have any questions or need assistance, our customer service team is always ready to help at support@purplebee.store.
 
 Happy shopping!
 
@@ -28,10 +26,10 @@ Facebook: https://www.facebook.com/purplebeefashion
 Pinterest: https://www.pinterest.com/purplebeefashion
 
 © ${new Date().getFullYear()} PurpleBee Fashion. All rights reserved.
-You're receiving this email because you signed up at purplebeefashion.com
-Email Preferences: https://www.purplebeefashion.com/preferences
-Privacy Policy: https://www.purplebeefashion.com/privacy
-Unsubscribe: https://www.purplebeefashion.com/unsubscribe?email=${email}`;
+You're receiving this email because you signed up at purplebee.store
+Email Preferences: https://www.purplebee.store/preferences
+Privacy Policy: https://www.purplebee.store/privacy
+Unsubscribe: https://www.purplebee.store/unsubscribe?email=${email}`;
 };
 
 module.exports = welcomeText;

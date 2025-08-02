@@ -76,12 +76,10 @@ const welcomeHtml = (firstName, email) => {
       </ul>
       
       <div style="text-align: center;">
-        <a href="https://www.purplebeefashion.com/shop" class="button">Start Shopping</a>
+        <a href="https://www.purplebee.store" class="button">Start Shopping</a>
       </div>
-      
-      <p>As a welcome gift, use code <strong>WELCOME15</strong> at checkout to receive 15% off your first purchase.</p>
-      
-      <p>If you have any questions or need assistance, our customer service team is always ready to help at <a href="mailto:support@purplebeefashion.com">support@purplebeefashion.com</a>.</p>
+
+      <p>If you have any questions or need assistance, our customer service team is always ready to help at <a href="mailto:support@purplebee.store">support@purplebee.store</a>.</p>
       
       <p>Happy shopping!</p>
       
@@ -97,11 +95,11 @@ const welcomeHtml = (firstName, email) => {
     </div>
     <div class="footer">
       <p>&copy; ${new Date().getFullYear()} PurpleBee Fashion. All rights reserved.</p>
-      <p>You're receiving this email because you signed up at <a href="https://www.purplebeefashion.com">purplebeefashion.com</a></p>
+      <p>You're receiving this email because you signed up at <a href="https://www.purplebee.store">purplebee.store</a></p>
       <p>
-        <a href="https://www.purplebeefashion.com/preferences">Email Preferences</a> |
-        <a href="https://www.purplebeefashion.com/privacy">Privacy Policy</a> |
-        <a href="https://www.purplebeefashion.com/unsubscribe?email=${email}">Unsubscribe</a>
+        <a href="https://www.purplebee.store/preferences">Email Preferences</a> |
+        <a href="https://www.purplebee.store/privacy">Privacy Policy</a> |
+        <a href="https://www.purplebee.store/unsubscribe?email=${email}">Unsubscribe</a>
       </p>
     </div>
   </div>

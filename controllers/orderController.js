@@ -7,6 +7,7 @@ const Product = require('../models/productModel');
 const orderHistory = require('../models/orderHistoryModel');
 const handlerFactory = require('./handlerFactory');
 const apiFeatures = require('../utils/apiFeatures');
+const Email = require('../utils/mail');
 const {
 	calculateOrderTotals,
 	updateProductInventory,
@@ -219,7 +220,9 @@ exports.stripeWebhook = catchAsync(async (req, res, next) => {
 			// Update order status
 			const order = await Order.findOne({
 				'paymentDetails.transactionId': paymentIntent.id,
-			});
+			})
+				.populate('user')
+				.populate('shippingAddress');
 
 			if (order) {
 				// Update inventory BEFORE updating order status
@@ -235,6 +238,11 @@ exports.stripeWebhook = catchAsync(async (req, res, next) => {
 					order: order._id,
 					status: 'processing',
 				});
+
+				// Send order confirmation email
+				await new Email(order.user, process.env.FRONTEND_URL).sendOrderPlaced(
+					order
+				);
 
 				// Clear user's cart after successful payment
 				await Cart.findOneAndUpdate({ user: order.user }, { $set: { items: [] } });
