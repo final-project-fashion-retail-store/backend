@@ -42,6 +42,8 @@ router.get(
 	productController.getRelatedProducts
 );
 
+router.get('/best-selling', productController.getBestSellingProducts);
+
 // router.use(authController.protect);
 
 router

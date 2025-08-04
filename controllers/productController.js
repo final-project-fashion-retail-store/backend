@@ -2,6 +2,7 @@ const Product = require('../models/productModel');
 const Category = require('../models/categoryModel');
 const Subcategory = require('../models/subcategoryModel');
 const Brand = require('../models/brandModel');
+const Order = require('../models/orderModel');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 const handlerFactory = require('./handlerFactory');
@@ -955,6 +956,110 @@ exports.getRelatedProducts = catchAsync(async (req, res, next) => {
 	});
 });
 
+exports.getBestSellingProducts = catchAsync(async (req, res) => {
+	const bestSellingProducts = await Order.aggregate([
+		// Match non-cancelled orders
+		{
+			$match: {
+				status: { $ne: 'cancelled' },
+			},
+		},
+
+		// Unwind items array
+		{
+			$unwind: '$items',
+		},
+
+		// Group by product and sum quantities
+		{
+			$group: {
+				_id: '$items.product',
+				totalSold: { $sum: '$items.quantity' },
+			},
+		},
+
+		// Sort by total sold and limit to top 10
+		{
+			$sort: { totalSold: -1 },
+		},
+		{
+			$limit: 10,
+		},
+
+		// Get product details
+		{
+			$lookup: {
+				from: 'products',
+				localField: '_id',
+				foreignField: '_id',
+				as: 'product',
+			},
+		},
+		{
+			$unwind: '$product',
+		},
+
+		// Only active products
+		{
+			$match: {
+				'product.active': true,
+			},
+		},
+
+		// Get category and brand info
+		{
+			$lookup: {
+				from: 'subcategories',
+				localField: 'product.category',
+				foreignField: '_id',
+				as: 'category',
+			},
+		},
+		{
+			$lookup: {
+				from: 'brands',
+				localField: 'product.brand',
+				foreignField: '_id',
+				as: 'brand',
+			},
+		},
+
+		// Final structure
+		{
+			$project: {
+				_id: '$product._id',
+				name: '$product.name',
+				slug: '$product.slug',
+				price: '$product.price',
+				salePrice: '$product.salePrice',
+				images: '$product.images',
+				averageRating: '$product.averageRating',
+				totalReviews: '$product.totalReviews',
+				inStock: '$product.inStock',
+				totalSold: 1,
+				category: {
+					_id: { $arrayElemAt: ['$category._id', 0] },
+					name: { $arrayElemAt: ['$category.name', 0] },
+					slug: { $arrayElemAt: ['$category.slug', 0] },
+				},
+				brand: {
+					_id: { $arrayElemAt: ['$brand._id', 0] },
+					name: { $arrayElemAt: ['$brand.name', 0] },
+					logo: { $arrayElemAt: ['$brand.logo', 0] },
+				},
+			},
+		},
+	]);
+
+	res.status(200).json({
+		status: 'success',
+		results: bestSellingProducts.length,
+		data: {
+			products: bestSellingProducts,
+		},
+	});
+});
+
 // Management of products
 exports.getProduct = handlerFactory.getOne(
 	Product,
@@ -964,6 +1069,7 @@ exports.getProduct = handlerFactory.getOne(
 	],
 	true
 );
+
 exports.getAllProducts = handlerFactory.getAll(
 	Product,
 	'products',
@@ -973,6 +1079,7 @@ exports.getAllProducts = handlerFactory.getAll(
 	],
 	true
 );
+
 exports.createProduct = handlerFactory.createOne(Product);
 exports.updateProduct = handlerFactory.updateOne(Product);
 exports.deleteProduct = handlerFactory.deleteOne(Product);
