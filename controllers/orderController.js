@@ -281,11 +281,8 @@ exports.stripeWebhook = catchAsync(async (req, res, next) => {
 exports.getUserOrders = catchAsync(async (req, res, next) => {
 	const query = Order.find({ user: req.user._id });
 
-	const features = new apiFeatures(query, req.query)
-		.filter()
-		.sort()
-		.limitFields();
-
+	const features = new apiFeatures(query, req.query).sort().limitFields();
+	await features.filter();
 	const paginationInfo = await features.paginate();
 
 	// Execute the query with population
@@ -316,11 +313,12 @@ exports.getUserOrders = catchAsync(async (req, res, next) => {
 });
 
 // admin
-exports.getAllOrders = handlerFactory.getAll(Order, 'orders', [
-	{ path: 'user' },
-	{ path: 'shippingAddress' },
-	{ path: 'items.product' },
-]);
+exports.getAllOrders = handlerFactory.getAll(
+	Order,
+	'orders',
+	[{ path: 'user' }, { path: 'shippingAddress' }, { path: 'items.product' }],
+	true
+);
 
 // only update order status
 exports.updateOrder = catchAsync(async (req, res, next) => {

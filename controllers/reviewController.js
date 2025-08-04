@@ -16,11 +16,8 @@ exports.getReviews = catchAsync(async (req, res, next) => {
 	let query = Review.find({ product: productId });
 
 	// Apply API features for filtering, sorting, field limiting
-	const features = new apiFeatures(query, req.query)
-		.filter()
-		.sort()
-		.limitFields();
-
+	const features = new apiFeatures(query, req.query).sort().limitFields();
+	await features.filter();
 	// Get pagination info
 	const paginationInfo = await features.paginate();
 

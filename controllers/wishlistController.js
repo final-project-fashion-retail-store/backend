@@ -41,11 +41,8 @@ exports.getAllWishlistItems = catchAsync(async (req, res, next) => {
 	let query = Wishlist.find({ user: req.user._id });
 
 	// Apply API features
-	const features = new apiFeatures(query, req.query)
-		.filter()
-		.sort()
-		.limitFields();
-
+	const features = new apiFeatures(query, req.query).sort().limitFields();
+	await features.filter();
 	// Get pagination info
 	const paginationInfo = await features.paginate();
 

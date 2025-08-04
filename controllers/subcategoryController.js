@@ -12,7 +12,8 @@ exports.getAllSubcategories = handlerFactory.getAll(
 		transform: (doc) => {
 			return { _id: doc.id, name: doc.name };
 		},
-	}
+	},
+	true
 );
 exports.createSubcategory = handlerFactory.createOne(Subcategory);
 exports.updateSubcategory = handlerFactory.updateOne(Subcategory);

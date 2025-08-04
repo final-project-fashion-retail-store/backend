@@ -10,7 +10,8 @@ exports.getAllCategoriesWithSubcategories = handlerFactory.getAll(
 	{
 		path: 'subcategories',
 		select: '-__v -active',
-	}
+	},
+	true
 );
 
 // Management

@@ -81,7 +81,7 @@ exports.getOne = (Model, populateOptions, ...options) =>
 		});
 	});
 
-exports.getAll = (Model, collection, populateOptions) =>
+exports.getAll = (Model, collection, populateOptions, adminPath) =>
 	catchAsync(async (req, res) => {
 		// To allow for nested GET reviews on tour (hack)
 		let filter = {};
@@ -91,9 +91,9 @@ exports.getAll = (Model, collection, populateOptions) =>
 			Model.find(filter).setOptions({ showInactive: true }),
 			req.query
 		)
-			.filter()
 			.sort()
 			.limitFields();
+		await features.filter();
 		const paginateObj = await features.paginate();
 		let query = features.query;
 
@@ -108,10 +108,14 @@ exports.getAll = (Model, collection, populateOptions) =>
 				pagination: {
 					...paginateObj,
 					nextPage: paginateObj.nextPage
-						? `${process.env.BASE_URL}/api/v1/${collection}${paginateObj.nextPage}`
+						? `${process.env.BASE_URL}/api/v1/${collection}${
+								adminPath ? '/admin' : ''
+						  }${paginateObj.nextPage}`
 						: null,
 					prevPage: paginateObj.prevPage
-						? `${process.env.BASE_URL}/api/v1/${collection}${paginateObj.prevPage}`
+						? `${process.env.BASE_URL}/api/v1/${collection}${
+								adminPath ? '/admin' : ''
+						  }${paginateObj.prevPage}`
 						: null,
 				},
 			},

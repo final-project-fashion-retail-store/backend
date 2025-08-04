@@ -5,7 +5,7 @@ const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 
 exports.getBrand = handlerFactory.getOne(Brand);
-exports.getAllBrands = handlerFactory.getAll(Brand);
+exports.getAllBrands = handlerFactory.getAll(Brand, 'brands', '', true);
 exports.createBrand = handlerFactory.createOne(Brand);
 exports.updateBrand = handlerFactory.updateOne(Brand);
 exports.deleteBrand = catchAsync(async (req, res, next) => {

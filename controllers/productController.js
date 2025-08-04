@@ -964,10 +964,15 @@ exports.getProduct = handlerFactory.getOne(
 	],
 	true
 );
-exports.getAllProducts = handlerFactory.getAll(Product, 'products', [
-	{ path: 'category', select: 'name slug' },
-	{ path: 'brand', select: 'name logo' },
-]);
+exports.getAllProducts = handlerFactory.getAll(
+	Product,
+	'products',
+	[
+		{ path: 'category', select: 'name slug' },
+		{ path: 'brand', select: 'name logo' },
+	],
+	true
+);
 exports.createProduct = handlerFactory.createOne(Product);
 exports.updateProduct = handlerFactory.updateOne(Product);
 exports.deleteProduct = handlerFactory.deleteOne(Product);

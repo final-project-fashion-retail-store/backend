@@ -77,11 +77,8 @@ exports.getAllUserAddresses = catchAsync(async (req, res) => {
 	let query = Address.find({ user: req.user.id });
 
 	// Apply API features
-	const features = new APIFeatures(query, req.query)
-		.filter()
-		.sort()
-		.limitFields();
-
+	const features = new APIFeatures(query, req.query).sort().limitFields();
+	await features.filter();
 	// Get pagination info
 	const paginationInfo = await features.paginate();
 

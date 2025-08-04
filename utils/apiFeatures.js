@@ -10,7 +10,7 @@ class APIFeatures {
 		this.queryString = queryString;
 	}
 
-	filter() {
+	async filter() {
 		const queryObj = { ...this.queryString };
 
 		// handle search queries
@@ -52,6 +52,42 @@ class APIFeatures {
 			this.query = this.query.find({ $or });
 		}
 
+		if (queryObj.orderManageSearch) {
+			const regex = regexSearch(queryObj.orderManageSearch);
+
+			// First, find users that match the search term
+			const User = require('../models/userModel'); // Adjust path as needed
+			const matchingUsers = await User.find({
+				$or: [
+					{ firstName: regex },
+					{ lastName: regex },
+					{
+						$expr: {
+							$regexMatch: {
+								input: { $concat: ['$firstName', ' ', '$lastName'] },
+								regex: queryObj.orderManageSearch,
+								options: 'i',
+							},
+						},
+					},
+				],
+			}).select('_id');
+
+			const userIds = matchingUsers.map((user) => user._id);
+
+			// Search orders by orderNumber or matching user IDs
+			this.query = this.query.find({
+				$or: [{ orderNumber: regex }, { user: { $in: userIds } }],
+			});
+		}
+
+		// Handle payment status filtering (for order management)
+		if (queryObj.paymentStatus) {
+			this.query = this.query.find({
+				'paymentDetails.status': queryObj.paymentStatus,
+			});
+		}
+
 		// 1/ remove fields that are not part of the query
 		const excludedFields = [
 			'page',
@@ -60,6 +96,8 @@ class APIFeatures {
 			'fields',
 			'userManageSearch',
 			'addressManageSearch',
+			'orderManageSearch',
+			'paymentStatus',
 		];
 		excludedFields.forEach((field) => delete queryObj[field]);
 
@@ -101,32 +139,35 @@ class APIFeatures {
 	}
 
 	async paginate() {
-		// const queryObj = { ...this.queryString };
 		const page = this.queryString.page * 1 || 1;
 		const limit = this.queryString.limit * 1 || 100;
 		const skip = (page - 1) * limit;
 
-		// Store the filter conditions before applying pagination
-		const queryConditions = this.query.getQuery();
-
-		// Clone the model to get a count with the same conditions
+		let totalDocs;
 		const Model = this.query.model;
 
-		const totalDocs = await Model.countDocuments(queryConditions);
+		// Check if this is an aggregation query
+		if (this.query.pipeline) {
+			// For aggregation queries, we need to count differently
+			const countPipeline = [...this.query.pipeline()];
+			countPipeline.push({ $count: 'total' });
+			const countResult = await Model.aggregate(countPipeline);
+			totalDocs = countResult.length > 0 ? countResult[0].total : 0;
+		} else {
+			// For regular queries
+			const queryConditions = this.query.getQuery();
+			totalDocs = await Model.countDocuments(queryConditions);
+		}
 
 		const totalPages = Math.ceil(totalDocs / limit);
-
-		// Calculate accumulator: total items processed up to current page
 		const accumulator = Math.min(page * limit, totalDocs);
 
 		let nextPage = null;
 		let prevPage = null;
 
-		// Build query string preserving all original parameters except page
 		const buildQueryString = (pageNum) => {
 			const queryParams = { ...this.queryString };
 			queryParams.page = pageNum;
-			// queryParams.limit = limit;
 
 			const queryString = Object.keys(queryParams)
 				.filter((key) => queryParams[key] !== undefined && queryParams[key] !== '')
