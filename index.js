@@ -22,6 +22,7 @@ const messageRouter = require('./routes/messageRoutes');
 const wishlistRouter = require('./routes/wishlistRoutes');
 const cartRouter = require('./routes/cartRoutes');
 const reviewRouter = require('./routes/reviewRoutes');
+const statisticsRouter = require('./routes/statisticsRoutes');
 const orderController = require('./controllers/orderController');
 
 // GLOBAL MIDDLEWARES
@@ -76,6 +77,7 @@ app.use('/api/v1/messages', messageRouter);
 app.use('/api/v1/wishlist', wishlistRouter);
 app.use('/api/v1/cart', cartRouter);
 app.use('/api/v1/reviews', reviewRouter);
+app.use('/api/v1/analytics', statisticsRouter);
 
 // Order routes (excluding webhook which is handled above)
 const orderRouter = require('./routes/orderRoutes');
