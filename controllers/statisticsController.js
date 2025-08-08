@@ -1863,10 +1863,10 @@ exports.getInventoryStatus = catchAsync(async (req, res, next) => {
 		pagination: {
 			...paginationInfo,
 			nextPage: paginationInfo.nextPage
-				? `${process.env.BASE_URL}/api/v1/analytics${paginationInfo.nextPage}`
+				? `${process.env.BASE_URL}/api/v1/analytics/inventory-status${paginationInfo.nextPage}`
 				: null,
 			prevPage: paginationInfo.prevPage
-				? `${process.env.BASE_URL}/api/v1/analytics${paginationInfo.prevPage}`
+				? `${process.env.BASE_URL}/api/v1/analytics/inventory-status${paginationInfo.prevPage}`
 				: null,
 		},
 	});
