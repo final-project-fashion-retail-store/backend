@@ -108,7 +108,9 @@ ProductSchema.pre('save', function (next) {
 });
 
 ProductSchema.post('save', async function (doc, next) {
-	await Brand.findByIdAndUpdate(doc.brand, { $inc: { productNum: 1 } });
+	if ((this.isNew || !doc._skipBrandUpdate) && !doc._skipBrandUpdate) {
+		await Brand.findByIdAndUpdate(doc.brand, { $inc: { productNum: 1 } });
+	}
 	next();
 });
 

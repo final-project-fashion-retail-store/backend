@@ -81,6 +81,34 @@ class APIFeatures {
 			});
 		}
 
+		if (queryObj.brandManageSearch) {
+			const regex = regexSearch(queryObj.brandManageSearch);
+			this.query = this.query.find({
+				name: regex,
+			});
+		}
+
+		if (queryObj.categoryManageSearch) {
+			const regex = regexSearch(queryObj.categoryManageSearch);
+			this.query = this.query.find({
+				name: regex,
+			});
+		}
+
+		if (queryObj.subcategoryManageSearch) {
+			const regex = regexSearch(queryObj.subcategoryManageSearch);
+			this.query = this.query.find({
+				name: regex,
+			});
+		}
+
+		if (queryObj.productManageSearch) {
+			const regex = regexSearch(queryObj.productManageSearch);
+			this.query = this.query.find({
+				name: regex,
+			});
+		}
+
 		// Handle payment status filtering (for order management)
 		if (queryObj.paymentStatus) {
 			this.query = this.query.find({
@@ -97,6 +125,10 @@ class APIFeatures {
 			'userManageSearch',
 			'addressManageSearch',
 			'orderManageSearch',
+			'brandManageSearch',
+			'categoryManageSearch',
+			'subcategoryManageSearch',
+			'productManageSearch',
 			'paymentStatus',
 		];
 		excludedFields.forEach((field) => delete queryObj[field]);

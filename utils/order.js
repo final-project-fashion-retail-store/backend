@@ -62,6 +62,7 @@ exports.updateProductInventory = async (orderItems, Product) => {
 				const hasStock = product.variants.some((variant) => variant.inventory > 0);
 				product.inStock = hasStock;
 
+				product._skipBrandUpdate = true;
 				await product.save();
 				console.log(`Updated inventory for product: ${product.name}`);
 			}
