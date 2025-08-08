@@ -46,4 +46,8 @@ router.get(
 	statisticsController.getWishlistToPurchaseConversion
 );
 
+router.get('/inventory-metrics', statisticsController.getInventoryMetrics);
+
+router.get('/inventory-status', statisticsController.getInventoryStatus);
+
 module.exports = router;

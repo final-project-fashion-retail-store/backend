@@ -3,6 +3,7 @@ const Order = require('../models/orderModel');
 const User = require('../models/userModel');
 const Product = require('../models/productModel');
 const Wishlist = require('../models/wishlistModel');
+const apiFeatures = require('../utils/apiFeatures');
 
 const getDateRange = (period) => {
 	const now = new Date();
@@ -1457,6 +1458,416 @@ exports.getWishlistToPurchaseConversion = catchAsync(async (req, res) => {
 			topWishlistedProducts,
 			productConversionRates,
 			period,
+		},
+	});
+});
+
+exports.getInventoryMetrics = catchAsync(async (req, res, next) => {
+	const { period = '6months' } = req.query;
+	const { startDate, endDate } = getDateRange(period);
+
+	// Calculate inventory metrics
+	const [inventoryMetrics, salesData, deadStockProducts] = await Promise.all([
+		// 1. Calculate total inventory value and low stock items
+		Product.aggregate([
+			{
+				$match: {
+					active: true,
+					inStock: true,
+				},
+			},
+			{
+				$addFields: {
+					// Calculate total inventory for each product across all variants
+					totalInventory: {
+						$reduce: {
+							input: '$variants',
+							initialValue: 0,
+							in: { $add: ['$$value', '$$this.inventory'] },
+						},
+					},
+					// Calculate total value for each product
+					totalValue: {
+						$reduce: {
+							input: '$variants',
+							initialValue: 0,
+							in: {
+								$add: ['$$value', { $multiply: ['$$this.inventory', '$importPrice'] }],
+							},
+						},
+					},
+					// Check if product is low stock (less than 10 total inventory)
+					isLowStock: {
+						$lt: [
+							{
+								$reduce: {
+									input: '$variants',
+									initialValue: 0,
+									in: { $add: ['$$value', '$$this.inventory'] },
+								},
+							},
+							10,
+						],
+					},
+				},
+			},
+			{
+				$group: {
+					_id: null,
+					totalInventoryValue: { $sum: '$totalValue' },
+					lowStockCount: {
+						$sum: { $cond: ['$isLowStock', 1, 0] },
+					},
+					totalProducts: { $sum: 1 },
+					totalInventoryUnits: { $sum: '$totalInventory' },
+				},
+			},
+		]),
+
+		// 2. Calculate sales data for turnover analysis
+		Order.aggregate([
+			{
+				$match: {
+					createdAt: { $gte: startDate, $lte: endDate },
+					status: { $ne: 'cancelled' },
+				},
+			},
+			{ $unwind: '$items' },
+			{
+				$group: {
+					_id: '$items.product',
+					totalSold: { $sum: '$items.quantity' },
+					totalRevenue: { $sum: { $multiply: ['$items.price', '$items.quantity'] } },
+					totalCost: {
+						$sum: { $multiply: ['$items.importPrice', '$items.quantity'] },
+					},
+				},
+			},
+			{
+				$lookup: {
+					from: 'products',
+					localField: '_id',
+					foreignField: '_id',
+					as: 'product',
+				},
+			},
+			{ $unwind: '$product' },
+			{
+				$addFields: {
+					avgInventory: {
+						$divide: [
+							{
+								$reduce: {
+									input: '$product.variants',
+									initialValue: 0,
+									in: { $add: ['$$value', '$$this.inventory'] },
+								},
+							},
+							2, // Simplified average inventory calculation
+						],
+					},
+				},
+			},
+			{
+				$addFields: {
+					turnoverRate: {
+						$cond: {
+							if: { $gt: ['$avgInventory', 0] },
+							then: { $divide: ['$totalSold', '$avgInventory'] },
+							else: 0,
+						},
+					},
+				},
+			},
+			{
+				$group: {
+					_id: null,
+					avgTurnoverRate: { $avg: '$turnoverRate' },
+					totalSoldUnits: { $sum: '$totalSold' },
+					totalRevenue: { $sum: '$totalRevenue' },
+				},
+			},
+		]),
+
+		// 3. Find dead stock products (no sales in the period and high inventory)
+		Product.aggregate([
+			{
+				$match: {
+					active: true,
+					inStock: true,
+				},
+			},
+			{
+				$lookup: {
+					from: 'orders',
+					let: { productId: '$_id' },
+					pipeline: [
+						{
+							$match: {
+								createdAt: { $gte: startDate, $lte: endDate },
+								status: { $ne: 'cancelled' },
+							},
+						},
+						{ $unwind: '$items' },
+						{
+							$match: {
+								$expr: { $eq: ['$items.product', '$$productId'] },
+							},
+						},
+						{ $count: 'salesCount' },
+					],
+					as: 'sales',
+				},
+			},
+			{
+				$addFields: {
+					totalInventory: {
+						$reduce: {
+							input: '$variants',
+							initialValue: 0,
+							in: { $add: ['$$value', '$$this.inventory'] },
+						},
+					},
+					hasSales: { $gt: [{ $size: '$sales' }, 0] },
+				},
+			},
+			{
+				$match: {
+					hasSales: false,
+					totalInventory: { $gt: 5 }, // Products with inventory > 5 and no sales
+				},
+			},
+			{
+				$count: 'deadStockCount',
+			},
+		]),
+	]);
+
+	// Process results
+	const metrics = inventoryMetrics[0] || {
+		totalInventoryValue: 0,
+		lowStockCount: 0,
+		totalProducts: 0,
+		totalInventoryUnits: 0,
+	};
+
+	const sales = salesData[0] || {
+		avgTurnoverRate: 0,
+		totalSoldUnits: 0,
+		totalRevenue: 0,
+	};
+
+	const deadStock = deadStockProducts[0] || { deadStockCount: 0 };
+
+	// Calculate stock turnover rate
+	const stockTurnover = sales.avgTurnoverRate || 0;
+
+	res.json({
+		success: true,
+		data: {
+			totalInventoryValue: {
+				value: metrics.totalInventoryValue,
+				formatted: `$${metrics.totalInventoryValue.toLocaleString()}`,
+			},
+			lowStockItems: {
+				value: metrics.lowStockCount,
+				percentage:
+					metrics.totalProducts > 0
+						? ((metrics.lowStockCount / metrics.totalProducts) * 100).toFixed(1)
+						: 0,
+			},
+			stockTurnover: {
+				value: parseFloat(stockTurnover.toFixed(1)),
+				formatted: `${stockTurnover.toFixed(1)}x`,
+			},
+			deadStock: {
+				value: deadStock.deadStockCount,
+				percentage:
+					metrics.totalProducts > 0
+						? ((deadStock.deadStockCount / metrics.totalProducts) * 100).toFixed(1)
+						: 0,
+			},
+			summary: {
+				totalProducts: metrics.totalProducts,
+				totalInventoryUnits: metrics.totalInventoryUnits,
+				period: period,
+			},
+		},
+	});
+});
+
+exports.getInventoryStatus = catchAsync(async (req, res, next) => {
+	// Create base query for products with variants
+	let query = Product.find({
+		active: true,
+		$expr: { $gt: [{ $size: '$variants' }, 0] }, // Only products with variants
+	});
+
+	// Handle search functionality
+	const searchableQuery = { ...req.query };
+
+	// Custom search for inventory management
+	if (req.query.inventorySearch) {
+		const searchRegex = new RegExp(req.query.inventorySearch, 'i');
+		query = query.find({
+			$or: [{ name: searchRegex }, { 'variants.sku': searchRegex }],
+		});
+		delete searchableQuery.inventorySearch;
+	}
+
+	// Filter by stock status
+	if (req.query.stockStatus) {
+		switch (req.query.stockStatus) {
+			case 'low':
+				query = query.find({
+					$expr: {
+						$lt: [
+							{
+								$reduce: {
+									input: '$variants',
+									initialValue: 0,
+									in: { $add: ['$$value', '$$this.inventory'] },
+								},
+							},
+							10, // Low stock threshold
+						],
+					},
+				});
+				break;
+			case 'out':
+				query = query.find({
+					$expr: {
+						$eq: [
+							{
+								$reduce: {
+									input: '$variants',
+									initialValue: 0,
+									in: { $add: ['$$value', '$$this.inventory'] },
+								},
+							},
+							0,
+						],
+					},
+				});
+				break;
+			case 'available':
+				query = query.find({
+					$expr: {
+						$gte: [
+							{
+								$reduce: {
+									input: '$variants',
+									initialValue: 0,
+									in: { $add: ['$$value', '$$this.inventory'] },
+								},
+							},
+							10,
+						],
+					},
+				});
+				break;
+		}
+		delete searchableQuery.stockStatus;
+	}
+
+	// Apply API Features for additional filtering, sorting, and pagination
+	const features = new apiFeatures(query, searchableQuery);
+	await features.filter();
+	features.sort();
+	features.limitFields();
+
+	// Get pagination info
+	const paginationInfo = await features.paginate();
+
+	// Execute query with population
+	const products = await features.query
+		.populate('brand', 'name')
+		.populate('category', 'name')
+		.lean();
+
+	// Process products to add inventory calculations
+	const processedProducts = products.map((product) => {
+		// Calculate total inventory across all variants
+		const totalInventory = product.variants.reduce(
+			(sum, variant) => sum + (variant.inventory || 0),
+			0
+		);
+
+		// Calculate reserved inventory
+		const totalReserved = product.variants.reduce(
+			(sum, variant) => sum + (variant.reservedInventory || 0),
+			0
+		);
+
+		// Calculate available inventory
+		const availableInventory = totalInventory - totalReserved;
+
+		// Determine stock status
+		let stockStatus = 'available';
+		let stockBadge = 'In Stock';
+
+		if (totalInventory === 0) {
+			stockStatus = 'out';
+			stockBadge = 'Out of Stock';
+		} else if (availableInventory <= 5) {
+			stockStatus = 'critical';
+			stockBadge = 'Critical Stock';
+		} else if (availableInventory <= 10) {
+			stockStatus = 'low';
+			stockBadge = 'Low Stock';
+		}
+
+		// Calculate inventory value
+		const inventoryValue = product.variants.reduce(
+			(sum, variant) => sum + variant.inventory * (product.importPrice || 0),
+			0
+		);
+
+		return {
+			_id: product._id,
+			name: product.name,
+			brand: product.brand?.name || 'No Brand',
+			category: product.category?.name || 'No Category',
+			totalInventory,
+			availableInventory,
+			totalReserved,
+			stockStatus,
+			stockBadge,
+			inventoryValue,
+			price: product.price,
+			importPrice: product.importPrice,
+			variants: product.variants.map((variant) => ({
+				sku: variant.sku,
+				color: variant.color,
+				size: variant.size,
+				inventory: variant.inventory,
+				reservedInventory: variant.reservedInventory || 0,
+				available: variant.inventory - (variant.reservedInventory || 0),
+				price: variant.price,
+			})),
+			images: product.images,
+			updatedAt: product.updatedAt,
+		};
+	});
+
+	// Sort by stock status (critical and low stock first)
+	processedProducts.sort((a, b) => {
+		const statusOrder = { critical: 0, low: 1, available: 2, out: 3 };
+		return statusOrder[a.stockStatus] - statusOrder[b.stockStatus];
+	});
+
+	res.json({
+		success: true,
+		results: processedProducts.length,
+		data: processedProducts,
+		pagination: {
+			...paginationInfo,
+			nextPage: paginationInfo.nextPage
+				? `${process.env.BASE_URL}/api/v1/analytics${paginationInfo.nextPage}`
+				: null,
+			prevPage: paginationInfo.prevPage
+				? `${process.env.BASE_URL}/api/v1/analytics${paginationInfo.prevPage}`
+				: null,
 		},
 	});
 });
