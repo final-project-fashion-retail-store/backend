@@ -51,7 +51,7 @@ exports.createOrderFromCart = catchAsync(async (req, res, next) => {
 			product.active &&
 			variant &&
 			variant.inventory >= cartItem.quantity &&
-			(variant.reserveInventory || 0) + cartItem.quantity <= variant.inventory
+			(variant.reservedInventory || 0) + cartItem.quantity <= variant.inventory
 		);
 	});
 	// console.log(availableItems);
