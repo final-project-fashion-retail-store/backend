@@ -27,6 +27,16 @@ wishlistSchema.pre(/^find/, function () {
 	});
 });
 
+wishlistSchema.post(/^find/, function (docs) {
+	if (Array.isArray(docs)) {
+		// For find operations that return arrays
+		return docs.filter((doc) => doc.product !== null);
+	} else if (docs && docs.product === null) {
+		// For findOne operations
+		return null;
+	}
+});
+
 const Wishlist = mongoose.model('Wishlist', wishlistSchema);
 
 module.exports = Wishlist;
