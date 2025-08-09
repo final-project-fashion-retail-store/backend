@@ -23,6 +23,7 @@ wishlistSchema.pre(/^find/, function () {
 	this.populate({
 		path: 'product',
 		select: '-__v',
+		match: { active: { $ne: false } },
 	});
 });
 
