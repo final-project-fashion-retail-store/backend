@@ -3,6 +3,7 @@ const slugify = require('slugify');
 const { Schema } = mongoose;
 
 const Brand = require('./brandModel');
+const Cart = require('./cartModel');
 
 const ImageSchema = new mongoose.Schema(
 	{
@@ -117,6 +118,11 @@ ProductSchema.post('save', async function (doc, next) {
 ProductSchema.post('findOneAndDelete', async function (doc, next) {
 	if (doc) {
 		await Brand.findByIdAndUpdate(doc.brand, { $inc: { productNum: -1 } });
+
+		await Cart.updateMany(
+			{ 'items.product': doc._id },
+			{ $pull: { items: { product: doc._id } } }
+		);
 	}
 	next();
 });

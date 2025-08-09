@@ -46,7 +46,13 @@ exports.createOrderFromCart = catchAsync(async (req, res, next) => {
 		);
 
 		// Check if product exists, variant exists, and variant has sufficient inventory
-		return product && variant && variant.inventory >= cartItem.quantity;
+		return (
+			product &&
+			product.active &&
+			variant &&
+			variant.inventory >= cartItem.quantity &&
+			(variant.reserveInventory || 0) + cartItem.quantity <= variant.inventory
+		);
 	});
 	// console.log(availableItems);
 	// Transform cart items to order items format
