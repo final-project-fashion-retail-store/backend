@@ -43,6 +43,7 @@ app.use(
 			'http://localhost:5173',
 			'http://localhost:3000',
 			'https://purplebee.store',
+			'https://manage.purplebee.store',
 		],
 		credentials: true,
 	})
