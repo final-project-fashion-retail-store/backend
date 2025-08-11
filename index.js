@@ -42,8 +42,8 @@ app.use(
 		origin: [
 			'http://localhost:5173',
 			'http://localhost:3000',
-			'https://purplebee.store',
 			'https://manage.purplebee.store',
+			'https://purplebee.store',
 		],
 		credentials: true,
 	})

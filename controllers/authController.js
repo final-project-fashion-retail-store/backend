@@ -30,8 +30,10 @@ const createSendToken = async (user, statusCode, res, next) => {
 			Date.now() + process.env.JWT_COOKIE_ACCESS_EXPIRES_IN * 24 * 60 * 60 * 1000
 		),
 		httpOnly: true,
-		secure: process.env.NODE_ENV === 'production',
-		sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+		// secure: process.env.NODE_ENV === 'production',
+		// sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+		secure: false, // For development purposes, set to true in production
+		sameSite: 'lax',
 	});
 
 	res.cookie('refreshToken', result, {
@@ -39,8 +41,10 @@ const createSendToken = async (user, statusCode, res, next) => {
 			Date.now() + process.env.JWT_COOKIE_REFRESH_EXPIRES_IN * 24 * 60 * 60 * 1000
 		),
 		httpOnly: true,
-		secure: process.env.NODE_ENV === 'production',
-		sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+		// secure: process.env.NODE_ENV === 'production',
+		// sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+		secure: false, // For development purposes, set to true in production
+		sameSite: 'lax',
 	});
 
 	// Send response
