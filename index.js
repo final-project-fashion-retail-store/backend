@@ -8,7 +8,7 @@ const cors = require('cors');
 const qs = require('qs');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
-const mongoSanitize = require('express-mongo-sanitize');
+const mongoSanitizeMiddleware = require('./middlewares/mongoSanitize');
 
 const globalErrorHandler = require('./controllers/errorController');
 const apiKeyAuth = require('./middlewares/apiKeyAuth');
@@ -80,7 +80,7 @@ app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(cookieParser());
 
 // Data sanitization against NoSQL query injection
-app.use(mongoSanitize());
+app.use(mongoSanitizeMiddleware);
 
 // Routes
 app.use(apiKeyAuth);
