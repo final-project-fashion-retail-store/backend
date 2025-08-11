@@ -6,6 +6,9 @@ const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
 const cors = require('cors');
 const qs = require('qs');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
+const mongoSanitize = require('express-mongo-sanitize');
 
 const globalErrorHandler = require('./controllers/errorController');
 const apiKeyAuth = require('./middlewares/apiKeyAuth');
@@ -47,6 +50,18 @@ app.use(
 
 app.options('/{*any}', cors());
 
+// Compression (sending responses faster)
+app.use(compression());
+
+const limiter = rateLimit({
+	max: 100,
+	windowMs: 60 * 60 * 1000,
+	validate: { xForwardedForHeader: false },
+	skip: (req) => req.path.includes('webhook') || req.path.includes('callback'),
+	message: 'Too many requests from this IP, please try again in an hour!',
+});
+app.use('/api', limiter);
+
 // IMPORTANT: Stripe webhook MUST come BEFORE express.json() middleware
 // This route needs raw body, not parsed JSON
 app.post(
@@ -62,6 +77,9 @@ app.set('query parser', (str) => {
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(cookieParser());
+
+// Data sanitization against NoSQL query injection
+app.use(mongoSanitize());
 
 // Routes
 app.use(apiKeyAuth);
