@@ -7,7 +7,7 @@ const helmet = require('helmet');
 const cors = require('cors');
 const qs = require('qs');
 const compression = require('compression');
-const rateLimit = require('express-rate-limit');
+// const rateLimit = require('express-rate-limit');
 const mongoSanitizeMiddleware = require('./middlewares/mongoSanitize');
 
 const globalErrorHandler = require('./controllers/errorController');
@@ -55,14 +55,14 @@ app.options('/{*any}', cors());
 // Compression (sending responses faster)
 app.use(compression());
 
-const limiter = rateLimit({
-	max: 100,
-	windowMs: 60 * 60 * 1000,
-	validate: { xForwardedForHeader: false },
-	skip: (req) => req.path.includes('webhook') || req.path.includes('callback'),
-	message: 'Too many requests from this IP, please try again in an hour!',
-});
-app.use('/api', limiter);
+// const limiter = rateLimit({
+// 	max: 100,
+// 	windowMs: 60 * 60 * 1000,
+// 	validate: { xForwardedForHeader: false },
+// 	skip: (req) => req.path.includes('webhook') || req.path.includes('callback'),
+// 	message: 'Too many requests from this IP, please try again in an hour!',
+// });
+// app.use('/api', limiter);
 
 // IMPORTANT: Stripe webhook MUST come BEFORE express.json() middleware
 // This route needs raw body, not parsed JSON
