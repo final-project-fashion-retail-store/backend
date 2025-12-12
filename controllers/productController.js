@@ -12,6 +12,7 @@ const apiFeatures = require('../utils/apiFeatures');
 const getAvailableFilters = async (baseQuery) => {
 	const pipeline = [
 		{ $match: baseQuery },
+		// Join brand
 		{
 			$lookup: {
 				from: 'brands',
@@ -20,6 +21,7 @@ const getAvailableFilters = async (baseQuery) => {
 				as: 'brandInfo',
 			},
 		},
+		// Join subcategory
 		{
 			$lookup: {
 				from: 'subcategories',
@@ -28,12 +30,16 @@ const getAvailableFilters = async (baseQuery) => {
 				as: 'subcategoryInfo',
 			},
 		},
+		// Deconstructs variants array so each variant becomes a separate document
 		{
 			$unwind: {
 				path: '$variants',
 				preserveNullAndEmptyArrays: true,
 			},
 		},
+		// Aggregates all products into a single document (id null)
+		// Unique brands, subcategories, colors/sizes, genders, seasons, materials
+		// addToSet ensures no duplicates
 		{
 			$group: {
 				_id: null,
@@ -65,6 +71,10 @@ const getAvailableFilters = async (baseQuery) => {
 				// totalProducts: { $sum: 1 },
 			},
 		},
+		// Determines exactly what fields pass to the next stage and what they look like
+		// Removes null values from arrays using $filter
+		// Calculates price range
+		// Removes _id field
 		{
 			$project: {
 				_id: 0,

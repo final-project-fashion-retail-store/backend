@@ -37,25 +37,25 @@ io.on('connection', (socket) => {
 		const existingSocketId = userSocketMap[userId];
 		if (existingSocketId && existingSocketId !== socket.id) {
 			console.log(
-				`🔄 User ${userId} already connected with socket ${existingSocketId}, replacing with ${socket.id}`
+				`User ${userId} already connected with socket ${existingSocketId}, replacing with ${socket.id}`
 			);
 
 			// Find and disconnect the old socket
 			const existingSocket = io.sockets.sockets.get(existingSocketId);
 			if (existingSocket) {
-				console.log(`🔌 Disconnecting old socket: ${existingSocketId}`);
+				console.log(`Disconnecting old socket: ${existingSocketId}`);
 				existingSocket.disconnect(true);
 			}
 		}
 
 		// Store the new socket mapping
 		userSocketMap[userId] = socket.id;
-		console.log(`📊 User ${userId} mapped to socket ${socket.id}`);
+		console.log(`User ${userId} mapped to socket ${socket.id}`);
 	}
 
 	// Log current connections
-	console.log('📊 Current connections:', Object.keys(userSocketMap).length);
-	console.log('👥 Connected users:', Object.keys(userSocketMap));
+	console.log('Current connections:', Object.keys(userSocketMap).length);
+	console.log('Connected users:', Object.keys(userSocketMap));
 
 	// io.emit() is used to send events to all the connected clients
 	io.emit('getOnlineUsers', Object.keys(userSocketMap));
@@ -68,7 +68,7 @@ io.on('connection', (socket) => {
 
 	// Handle ping for connection testing
 	socket.on('ping', (data) => {
-		console.log(`🏓 Ping received from ${userId}:`, data);
+		console.log(`Ping received from ${userId}:`, data);
 		socket.emit('pong', `Server received: ${data}`);
 	});
 
@@ -86,11 +86,11 @@ io.on('connection', (socket) => {
 
 		if (disconnectedUserId) {
 			delete userSocketMap[disconnectedUserId];
-			console.log(`🗑️ Removed user ${disconnectedUserId} from connections`);
+			console.log(`Removed user ${disconnectedUserId} from connections`);
 		}
 
 		console.log(
-			'📊 Connections after disconnect:',
+			'Connections after disconnect:',
 			Object.keys(userSocketMap).length
 		);
 		io.emit('getOnlineUsers', Object.keys(userSocketMap));
@@ -104,7 +104,7 @@ io.on('connection', (socket) => {
 
 // Periodic cleanup of stale connections
 setInterval(() => {
-	console.log('🧹 Performing periodic cleanup...');
+	console.log('Performing periodic cleanup...');
 	const connectedSockets = Array.from(io.sockets.sockets.keys());
 	const staleUsers = [];
 
@@ -115,12 +115,12 @@ setInterval(() => {
 	}
 
 	staleUsers.forEach((userId) => {
-		console.log(`🗑️ Removing stale connection for user ${userId}`);
+		console.log(`Removing stale connection for user ${userId}`);
 		delete userSocketMap[userId];
 	});
 
 	if (staleUsers.length > 0) {
-		console.log(`🧹 Cleaned up ${staleUsers.length} stale connections`);
+		console.log(`Cleaned up ${staleUsers.length} stale connections`);
 		io.emit('getOnlineUsers', Object.keys(userSocketMap));
 	}
 }, 30000); // Every 30 seconds

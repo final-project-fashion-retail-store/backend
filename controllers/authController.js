@@ -293,13 +293,6 @@ exports.login = catchAsync(async (req, res, next) => {
 		);
 	}
 
-	// Check if user is blocked
-	// if (!user.active) {
-	// 	return next(
-	// 		new AppError('Your account is blocked. Please contact support.', 403)
-	// 	);
-	// }
-
 	// Check if user is trying to login with password but account is OAuth only
 	if (user.authProvider === 'google' && !user.password) {
 		return next(

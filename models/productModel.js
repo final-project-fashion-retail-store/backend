@@ -4,6 +4,7 @@ const { Schema } = mongoose;
 
 const Brand = require('./brandModel');
 const Cart = require('./cartModel');
+const Wishlist = require('./wishlistModel');
 
 const ImageSchema = new mongoose.Schema(
 	{
@@ -123,6 +124,8 @@ ProductSchema.post('findOneAndDelete', async function (doc, next) {
 			{ 'items.product': doc._id },
 			{ $pull: { items: { product: doc._id } } }
 		);
+
+		await Wishlist.deleteMany({ product: doc._id });
 	}
 	next();
 });
