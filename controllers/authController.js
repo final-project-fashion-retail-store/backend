@@ -274,7 +274,7 @@ exports.signup = catchAsync(async (req, res, next) => {
 
 exports.login = catchAsync(async (req, res, next) => {
 	const { email, password } = req.body;
-	const { refreshToken } = req.cookies;
+	// const { refreshToken } = req.cookies;
 	// 1) Check existence of email and password
 	if (!email || !password)
 		return next(new AppError('Please provide email and password', 400));
@@ -306,20 +306,20 @@ exports.login = catchAsync(async (req, res, next) => {
 	if (!user || !correct)
 		return next(new AppError('Incorrect email or password', 401));
 
-	if (refreshToken) {
-		try {
-			const decoded = await promisify(jwt.verify)(
-				refreshToken,
-				process.env.JWT_REFRESH_SECRET
-			);
-			const result = await setRefreshTokenToBlacklist(refreshToken, decoded.exp);
-			if (!result) {
-				return next(new AppError('Failed to set refresh token in redis', 500));
-			}
-		} catch (err) {
-			next(err);
-		}
-	}
+	// if (refreshToken) {
+	// 	try {
+	// 		const decoded = await promisify(jwt.verify)(
+	// 			refreshToken,
+	// 			process.env.JWT_REFRESH_SECRET
+	// 		);
+	// 		const result = await setRefreshTokenToBlacklist(refreshToken, decoded.exp);
+	// 		if (!result) {
+	// 			return next(new AppError('Failed to set refresh token in redis', 500));
+	// 		}
+	// 	} catch (err) {
+	// 		// next(err);
+	// 	}
+	// }
 
 	// 3) Everything is valid, send token to client
 	createSendToken(user, 200, res, next);

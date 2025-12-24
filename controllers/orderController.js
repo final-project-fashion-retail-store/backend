@@ -21,7 +21,7 @@ exports.createOrderFromCart = catchAsync(async (req, res, next) => {
 		billingAddress,
 		paymentMethod = 'stripe',
 		shippingCost = 0,
-		taxRate = 0.1,
+		taxRate = 0.08,
 	} = req.body;
 
 	// Validate required addresses

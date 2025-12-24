@@ -42,7 +42,7 @@ exports.getBusinessInsights = catchAsync(async (req, res, next) => {
 	const prevEndDate = startDate;
 
 	const [currentStats, prevStats, activeUsers] = await Promise.all([
-		// 🟢 Current period stats
+		// Current period stats
 		Order.aggregate([
 			{
 				$match: {
@@ -50,6 +50,9 @@ exports.getBusinessInsights = catchAsync(async (req, res, next) => {
 					status: { $ne: 'cancelled' },
 				},
 			},
+			// Calculate import cost per order and set the itemsCost field to order document
+			// $value is the accumulated value
+			// Reduce is like JS's reduce: Total = Current Total + (Price * Quantity)
 			{
 				$set: {
 					itemsCost: {
@@ -77,6 +80,7 @@ exports.getBusinessInsights = catchAsync(async (req, res, next) => {
 					avgOrderValue: { $avg: '$totalAmount' },
 				},
 			},
+			// $addFields is the same as $set
 			{
 				$addFields: {
 					totalRevenueWithoutTax: {
@@ -92,7 +96,7 @@ exports.getBusinessInsights = catchAsync(async (req, res, next) => {
 			},
 		]),
 
-		// 🟡 Previous period stats
+		// Previous period stats
 		Order.aggregate([
 			{
 				$match: {
@@ -110,7 +114,7 @@ exports.getBusinessInsights = catchAsync(async (req, res, next) => {
 			},
 		]),
 
-		// 🔵 Active users count
+		// Active users count
 		User.countDocuments({ active: true }),
 	]);
 
@@ -131,7 +135,7 @@ exports.getBusinessInsights = catchAsync(async (req, res, next) => {
 		avgOrderValue: 0,
 	};
 
-	// 🧮 Percentage changes
+	// Percentage changes
 	const revenueChange =
 		previous.totalRevenue > 0
 			? (
@@ -507,6 +511,7 @@ exports.getUserRegistrationActivity = catchAsync(async (req, res) => {
 					status: { $ne: 'cancelled' },
 				},
 			},
+			// Group by user to get unique active users
 			{
 				$group: {
 					_id: {
@@ -603,7 +608,9 @@ exports.getUserRegistrationActivity = catchAsync(async (req, res) => {
 		}
 	});
 
+	// .values() returns an iterator, convert to array and sort by date
 	const timeline = Array.from(timelineMap.values()).sort(
+		// If result is negative, a is before b
 		(a, b) => new Date(a.date) - new Date(b.date)
 	);
 
@@ -624,6 +631,8 @@ exports.getOrdersByLocation = catchAsync(async (req, res) => {
 				status: { $ne: 'cancelled' },
 			},
 		},
+		// Each order document will have shippingInfo field
+		// shippingInfo is an array, even one element
 		{
 			$lookup: {
 				from: 'addresses',
@@ -714,6 +723,7 @@ exports.getTopCustomers = catchAsync(async (req, res) => {
 				email: '$userInfo.email',
 				totalOrders: 1,
 				totalSpent: 1,
+				// e.g. 150.556 => 150.56
 				avgOrderValue: { $round: ['$avgOrderValue', 2] },
 				lastOrderDate: 1,
 				// Calculate customer lifetime value (LTV) - simplified as total spent
@@ -943,6 +953,7 @@ exports.getEcommerceMetrics = catchAsync(async (req, res) => {
 					status: { $ne: 'cancelled' },
 				},
 			},
+			// $addToSet creates an array of unique user IDs
 			{
 				$group: {
 					_id: null,
@@ -951,6 +962,7 @@ exports.getEcommerceMetrics = catchAsync(async (req, res) => {
 					uniqueCustomers: { $addToSet: '$user' },
 				},
 			},
+			// $size gets the count of unique customers
 			{
 				$addFields: {
 					avgOrderValue: { $divide: ['$totalRevenue', '$totalOrders'] },
@@ -1154,7 +1166,7 @@ exports.getProductRatingsDistribution = catchAsync(async (req, res) => {
 			$group: {
 				_id: '$ratingRange',
 				count: { $sum: 1 },
-				totalProducts: { $sum: 1 },
+				// totalProducts: { $sum: 1 },
 				avgRating: { $avg: '$averageRating' },
 				totalReviews: { $sum: '$totalReviews' },
 			},
@@ -1197,14 +1209,14 @@ exports.getProductRatingsDistribution = catchAsync(async (req, res) => {
 		data: {
 			distribution: completeDistribution,
 			totalProducts,
-			summary: {
-				excellentProducts:
-					completeDistribution.find((r) => r.rating === 5)?.count || 0, // 5 stars
-				goodProducts: completeDistribution.find((r) => r.rating === 4)?.count || 0, // 4 stars
-				needsImprovement: completeDistribution
-					.filter((r) => r.rating <= 3)
-					.reduce((sum, r) => sum + r.count, 0), // 3 stars or below
-			},
+			// summary: {
+			// 	excellentProducts:
+			// 		completeDistribution.find((r) => r.rating === 5)?.count || 0, // 5 stars
+			// 	goodProducts: completeDistribution.find((r) => r.rating === 4)?.count || 0, // 4 stars
+			// 	needsImprovement: completeDistribution
+			// 		.filter((r) => r.rating <= 3)
+			// 		.reduce((sum, r) => sum + r.count, 0), // 3 stars or below
+			// },
 		},
 	});
 });
